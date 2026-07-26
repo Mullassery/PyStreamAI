@@ -3,10 +3,12 @@
 from .platform import Platform
 from .decorators import train, serve, pipeline
 from .monitoring import (
-    get_observability,
-    init_wandb,
-    init_datadog,
     InferenceMetric,
+    MetricBackend,
+    MetricCollector,
+    get_metrics,
+    set_metric_backend,
+    log_metric,
 )
 
 __version__ = "0.1.0"
@@ -15,8 +17,10 @@ __all__ = [
     "train",
     "serve",
     "pipeline",
-    "get_observability",
-    "init_wandb",
-    "init_datadog",
     "InferenceMetric",
+    "MetricBackend",
+    "MetricCollector",
+    "get_metrics",
+    "set_metric_backend",
+    "log_metric",
 ]

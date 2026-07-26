@@ -45,37 +45,15 @@ class BenchmarkResult:
 class BenchmarkRunner:
     """Orchestrates benchmarking across models and optimizations"""
 
-    def __init__(self, output_dir: str = "benchmark_results", use_wandb: bool = False):
+    def __init__(self, output_dir: str = "benchmark_results"):
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(exist_ok=True)
         self.results: List[BenchmarkResult] = []
-        self.use_wandb = use_wandb
-
-        if use_wandb:
-            try:
-                from pystreamai.monitoring import init_wandb
-                init_wandb(project="pystreamai-benchmarks")
-                logger.info("W&B enabled for benchmarks")
-            except ImportError:
-                logger.warning("wandb not installed, skipping W&B logging")
 
     def add_result(self, result: BenchmarkResult):
         """Add a benchmark result"""
         self.results.append(result)
         logger.info(str(result))
-
-        # Log to W&B if enabled
-        if self.use_wandb:
-            try:
-                import wandb
-                wandb.log({
-                    f"benchmark/{result.model_name}/{result.optimization}/baseline_ms": result.baseline_latency_ms,
-                    f"benchmark/{result.model_name}/{result.optimization}/optimized_ms": result.optimized_latency_ms,
-                    f"benchmark/{result.model_name}/{result.optimization}/speedup": result.speedup,
-                    f"benchmark/{result.model_name}/{result.optimization}/reduction_percent": result.latency_reduction_percent,
-                })
-            except ImportError:
-                pass
 
     def save_results(self, filename: str = "results.json"):
         """Save all results to JSON"""

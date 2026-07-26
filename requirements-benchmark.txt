@@ -5,11 +5,13 @@ torchvision>=0.15.0
 numpy>=1.24.0
 pydantic>=2.0.0
 
-# Observability
-wandb>=0.15.0
-
 # Optional: For better quantization
 bitsandbytes>=0.41.0
 
 # Optional: GPU acceleration
 # CUDA toolkit and cuDNN (install separately per your OS)
+
+# Optional: Observability integrations
+# wandb>=0.15.0
+# datadog>=0.45.0
+# newrelic>=8.0.0
