@@ -23,7 +23,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def benchmark_bert():
+def benchmark_bert(use_wandb: bool = False):
     """Benchmark BERT model"""
     from benchmarks.models import load_bert_model, quantize_model_int8
     from benchmarks.inference import InferenceOptimizer
@@ -33,7 +33,7 @@ def benchmark_bert():
     logger.info("BENCHMARKING BERT (Sequence Classification)")
     logger.info("=" * 80)
 
-    runner = BenchmarkRunner()
+    runner = BenchmarkRunner(use_wandb=use_wandb)
 
     try:
         model, tokenizer = load_bert_model()
@@ -125,7 +125,7 @@ def benchmark_bert():
     return runner
 
 
-def benchmark_gpt2():
+def benchmark_gpt2(use_wandb: bool = False):
     """Benchmark GPT-2 model"""
     from benchmarks.models import load_gpt2_model, quantize_model_int8
     from benchmarks.inference import InferenceOptimizer
@@ -135,7 +135,7 @@ def benchmark_gpt2():
     logger.info("BENCHMARKING GPT-2 (Language Model)")
     logger.info("=" * 80)
 
-    runner = BenchmarkRunner()
+    runner = BenchmarkRunner(use_wandb=use_wandb)
 
     try:
         model, tokenizer = load_gpt2_model()
@@ -244,11 +244,19 @@ def benchmark_gpt2():
 
 
 if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description="PyStreamAI Inference Benchmarks")
+    parser.add_argument("--wandb", action="store_true", help="Log results to Weights & Biases")
+    args = parser.parse_args()
+
     logger.info("PyStreamAI Inference Optimization Benchmarks")
     logger.info("Measuring speedups on BERT and GPT-2")
+    if args.wandb:
+        logger.info("Logging to Weights & Biases...")
 
-    bert_runner = benchmark_bert()
-    gpt2_runner = benchmark_gpt2()
+    bert_runner = benchmark_bert(use_wandb=args.wandb)
+    gpt2_runner = benchmark_gpt2(use_wandb=args.wandb)
 
     if bert_runner and gpt2_runner:
         print("\n" + "=" * 80)
