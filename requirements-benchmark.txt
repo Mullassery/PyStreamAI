@@ -1,0 +1,12 @@
+# PyStreamAI Benchmarking Requirements
+transformers>=4.30.0
+torch>=2.0.0
+torchvision>=0.15.0
+numpy>=1.24.0
+pydantic>=2.0.0
+
+# Optional: For better quantization
+bitsandbytes>=0.41.0
+
+# Optional: GPU acceleration
+# CUDA toolkit and cuDNN (install separately per your OS)
