@@ -1,0 +1,41 @@
+# Source code (proprietary)
+src/
+pystreamai/*.py
+benchmarks/
+*.rs
+
+# Build artifacts
+build/
+*.egg-info/
+__pycache__/
+*.pyc
+*.so
+
+# Environment
+.venv/
+venv/
+env/
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Rust
+target/
+Cargo.lock
+
+# Test artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local development
+.claude/
+*.log
