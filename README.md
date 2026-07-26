@@ -37,6 +37,37 @@ Your model is now deployed with:
 - Zero configuration (sensible defaults)
 - Extensible metrics collection
 
+## Get Started in 3 Steps
+
+### 1. Install (1 minute)
+
+```bash
+pip install pystreamai
+```
+
+Requires Python 3.10+. That's it.
+
+### 2. Load and Deploy (2 minutes)
+
+```python
+from pystreamai import Platform
+
+platform = Platform()
+model = platform.load("bert-base-uncased")
+endpoint = platform.serve(model)
+```
+
+### 3. Make Predictions (1 second)
+
+```python
+result = endpoint.predict({"text": "Hello world"})
+print(result)
+```
+
+Done. Your model is deployed locally with 40-50x speedup. Scale to production with one config change.
+
+See examples below for complete working code.
+
 ## Why PyStreamAI
 
 ### 40-50x Faster Inference
@@ -200,41 +231,9 @@ Export metrics to standard platforms via custom integrations.
 - Automatic quantization
 - Compilation to platform-specific formats
 
-## Installation
+## Complete Examples
 
-Python 3.10+ required.
-
-```bash
-pip install pystreamai
-```
-
-## Quick Start
-
-### 1. Load Any Model
-
-```python
-from pystreamai import Platform
-
-platform = Platform()
-model = platform.load("bert-base-uncased")
-```
-
-Works with most standard model formats and repositories.
-
-### 2. Deploy As Production Endpoint
-
-```python
-endpoint = platform.serve(model)
-```
-
-### 3. Make Predictions
-
-```python
-result = endpoint.predict({"text": "Hello world"})
-print(result["output"])
-```
-
-### Complete Example: Text Classification
+### Text Classification
 
 ```python
 from pystreamai import Platform
@@ -255,7 +254,7 @@ results = endpoint.predict_batch([
 ])
 ```
 
-### Complete Example: Language Model with Streaming
+### Language Model with Streaming
 
 ```python
 from pystreamai import Platform
@@ -272,7 +271,7 @@ for token in endpoint.predict_stream(
     print(token, end="", flush=True)
 ```
 
-### Complete Example: Cost Control
+### Cost Control and Budget Management
 
 ```python
 from pystreamai import Platform
