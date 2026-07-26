@@ -8,7 +8,9 @@ Zero YAML. No Kubernetes expertise required. Ship models to production in minute
 
 Kubeflow solved the problem of running ML workloads on Kubernetes, but accumulated complexity. KServe requires infrastructure expertise. Modern ML engineers shouldn't need to become Kubernetes experts to deploy models.
 
-**PyStreamAI** replaces both with:
+**PyStreamAI** is designed to **work without Kubernetes by default**—it runs locally with Docker, scales to cloud (AWS/GCP/Azure), and optionally uses Kubernetes if you already have it.
+
+**PyStreamAI** replaces both Kubeflow + KServe with:
 
 - ✨ **Dead-simple Python API** — No YAML, no manifests, no infrastructure expertise
 - 🚀 **Local-to-cloud** — Test locally, deploy with one command
@@ -64,10 +66,20 @@ That's it. No YAML. No Kubernetes. No infrastructure knowledge required.
 │   Rust Core Orchestrator             │
 ├──────────────────────────────────────┤
 │ Scheduler │ Executor │ Storage       │
+├──────────────────────────────────────┤
+│         Backend Abstraction           │
 └──────────────────────────────────────┘
      ↓ Deploy to ↓
-AWS / GCP / Azure / On-Prem / Kubernetes
+Local/Docker → AWS → GCP → Azure → Kubernetes (optional)
 ```
+
+**Backend Options** (choose what works for you):
+- **Local** (default) — Develop locally with Docker
+- **Docker** — Run containerized models
+- **AWS** — Lambda + EC2 + SageMaker integration
+- **GCP** — Cloud Run + Compute Engine
+- **Azure** — Container Instances + AML
+- **Kubernetes** — If you already use K8s (but not required)
 
 ## Features (v0.1)
 
