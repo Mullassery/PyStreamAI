@@ -5,12 +5,14 @@ mod executor;
 mod storage;
 mod inference;
 mod backend;
+mod gpu;
 
 use scheduler::Scheduler;
 use executor::Executor;
 use storage::Storage;
 use inference::{InferenceOptimizer, ModelOptimizationPlan};
 use backend::{Backend, BackendType, LocalBackend};
+use gpu::{GPUInfo, CUDAProfiler};
 
 #[pyclass]
 pub struct Platform {
@@ -57,5 +59,7 @@ impl Platform {
 #[pymodule]
 fn pystreamai(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<Platform>()?;
+    m.add_class::<GPUInfo>()?;
+    m.add_class::<CUDAProfiler>()?;
     Ok(())
 }

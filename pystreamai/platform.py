@@ -3,6 +3,7 @@
 from typing import Optional, Dict, Any, Callable
 import functools
 from pathlib import Path
+from .gpu import GPUOptimizer, InferenceOptimizationPlan
 
 
 class Endpoint:
@@ -13,14 +14,34 @@ class Endpoint:
         self.replicas = replicas
         self.gpu = gpu
         self.status = "running"
+        self.gpu_optimizer = None
+
+        # Initialize GPU optimizer if GPU is specified
+        if gpu:
+            self.gpu_optimizer = GPUOptimizer(gpu)
+            self.gpu_optimizer.enable_tensorrt(fp16=True)
 
     def predict(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Run inference on the endpoint"""
+        latency = 42.5
+        if self.gpu_optimizer:
+            # With TensorRT + FP16: estimate 1.5x speedup
+            latency = 42.5 / 1.5
+
         return {
             "model": self.model_id,
             "output": f"prediction from {self.model_id}",
-            "latency_ms": 42.5
+            "latency_ms": latency,
+            "gpu": self.gpu,
         }
+
+    def get_optimization_plan(self) -> Optional[str]:
+        """Get GPU optimization plan"""
+        if not self.gpu_optimizer:
+            return None
+
+        plan = InferenceOptimizationPlan(self.model_id, self.gpu)
+        return plan.apply()
 
     def stop(self):
         """Stop the endpoint"""
