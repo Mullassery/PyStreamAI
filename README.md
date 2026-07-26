@@ -33,9 +33,9 @@ result = endpoint.predict({"text": "Hello world"})
 Your model is now deployed with:
 - 40-50x speedup (automatic optimization)
 - Cost tracking (per-request billing)
-- Production monitoring (observability built-in)
 - Multi-cloud support (run anywhere)
 - Zero configuration (sensible defaults)
+- Extensible metrics collection
 
 ## Why PyStreamAI
 
@@ -108,20 +108,20 @@ Supports:
 - Kubernetes (if you need it)
 - Edge devices (mobile, IoT, browsers)
 
-### Real-Time Observability
+### Metrics Collection
 
-Built-in monitoring without configuration:
+Track inference metrics programmatically:
 
 ```python
-# Automatic metrics
+# Inference metrics
 metrics = endpoint.get_metrics()
 # latency_p50, latency_p95, latency_p99
 # throughput_requests_per_second
 # cost_per_1k_requests
-# error_rate_percent
+# total_requests
 ```
 
-Export to standard observability platforms and custom integrations.
+Export metrics to standard platforms via custom integrations.
 
 ## Key Differences
 
@@ -150,7 +150,7 @@ Export to standard observability platforms and custom integrations.
 - Automatic inference optimization (40-50x speedup)
 - Multi-cloud support (local, private cloud, public cloud, edge)
 - Cost tracking and budget enforcement
-- Production-grade observability
+- Metrics collection (latency, throughput, costs)
 - Zero configuration required
 
 ### Optimization Engine
