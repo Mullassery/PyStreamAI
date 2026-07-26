@@ -1,0 +1,40 @@
+[build-system]
+requires = ["maturin>=1.0,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "pystreamai"
+version = "0.1.0"
+description = "Simple ML deployment - Kubeflow + KServe replacement"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "Proprietary"}
+authors = [
+    {name = "Georgi Mammen Mullassery", email = "mullassery@gmail.com"}
+]
+keywords = ["ml", "deployment", "orchestration", "kubeflow", "kserve"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+dependencies = [
+    "pydantic>=2.0",
+    "typing-extensions>=4.0",
+]
+
+[project.urls]
+"Bug Tracker" = "https://github.com/mullassery/pystreamai/issues"
+"Homepage" = "https://github.com/mullassery/pystreamai"
+
+[tool.maturin]
+python-source = "pystreamai"
+features = ["pyo3/extension-module"]
+module-name = "pystreamai._core"
