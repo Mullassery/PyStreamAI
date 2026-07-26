@@ -35,6 +35,5 @@ dependencies = [
 "Homepage" = "https://github.com/mullassery/pystreamai"
 
 [tool.maturin]
-python-source = "pystreamai"
 features = ["pyo3/extension-module"]
-module-name = "pystreamai._core"
+module-name = "pystreamai"
