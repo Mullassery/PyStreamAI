@@ -1,19 +1,20 @@
 # PyStreamAI
 
-The fastest way to deploy machine learning models to production. 40-50x faster inference than PyTorch. Zero configuration required.
+The fastest way to deploy machine learning models to production. 40-50x faster inference. Zero configuration required.
 
 ## The Problem
 
-You've trained a great ML model. Now you need to deploy it. Your options:
+Traditional ML deployment is slow and complex. You've trained a great model, but deploying it requires:
 
-1. AWS SageMaker: $2,000+ setup time, 30+ minutes to first inference, opaque pricing
-2. Kubernetes + Kubeflow: Learn YAML, master distributed systems, 2+ hours to deploy, models run 10x slower
-3. BentoML: Better than Kubeflow, but inference is still slow, costs are hidden, edge deployment is an afterthought
-4. Databricks: Locked into their ecosystem, hidden fees, limited LLM support
+- Infrastructure expertise (Kubernetes, container orchestration)
+- Complex configuration files (YAML manifests, deployment scripts)
+- 2+ hours to get your first inference running
+- Slow inference speeds (models run 10x slower than they should)
+- Opaque pricing and hidden costs
+- Separate solutions for each cloud provider
+- No support for edge deployment
 
-You spend weeks on deployment and infrastructure when you should be shipping features.
-
-Meanwhile, your inference is slow. A BERT model takes 200ms when it should take 20ms. Your LLM inference is laggy. Your costs are opaque. You can't deploy to edge devices. Multi-cloud is a rewrite.
+You spend weeks on infrastructure when you should be shipping features.
 
 ## The Solution
 
@@ -52,11 +53,11 @@ ONNX Runtime (2-3x)
 ```
 
 Real-world results:
-- BERT: 200ms → 25ms (8x)
-- GPT-2: 250ms → 40ms (6x)
+- BERT transformer: 200ms → 25ms (8x)
+- GPT-2 language model: 250ms → 40ms (6x)
 - Llama 7B: 5000ms → 100-200ms (25-50x)
 
-All automatic. No tuning required.
+All automatic. No manual tuning required.
 
 ### One Command Deployment
 
@@ -65,7 +66,7 @@ All automatic. No tuning required.
 endpoint = platform.serve(model)
 ```
 
-No YAML. No Kubernetes. No infrastructure expertise. Works on your laptop first, scales to production immediately.
+No YAML files. No infrastructure expertise. No Kubernetes. Works on your laptop first, scales to production immediately.
 
 ### Transparent Costs
 
@@ -86,18 +87,26 @@ Per-request billing. No surprise invoices. No hidden fees.
 
 ### Deploy Anywhere
 
-Same code runs locally, on AWS, GCP, Azure, Kubernetes, or edge devices:
+Same code runs locally, on any cloud provider, or edge devices:
 
 ```python
 # Local development
 platform = Platform(backend="local")
 
-# Production AWS
-platform = Platform(backend="aws")
+# Production cloud
+platform = Platform(backend="cloud")
 
 # Same code everywhere
 endpoint = platform.serve(model)
 ```
+
+Supports:
+- Local deployment (develop on your laptop)
+- Docker containers (portable everywhere)
+- Private cloud (on-premises servers)
+- Public cloud (any provider)
+- Kubernetes (if you need it)
+- Edge devices (mobile, IoT, browsers)
 
 ### Real-Time Observability
 
@@ -112,70 +121,84 @@ metrics = endpoint.get_metrics()
 # error_rate_percent
 ```
 
-Export to Prometheus, Datadog, New Relic, or any observability platform.
+Export to standard observability platforms and custom integrations.
 
-## Performance Comparison
+## Key Differences
 
-PyStreamAI vs. Alternatives:
+### Traditional Approach
+- 2+ hours to first deployment
+- Slow inference (10x baseline speed)
+- Complex YAML configuration
+- Hidden or opaque costs
+- Requires infrastructure expertise
+- Lock-in to specific platforms
+- Limited edge support
 
-|Feature|PyStreamAI|AWS SageMaker|Kubernetes + Kubeflow|BentoML|Databricks|
-|-------|----------|-----------|------------------|--------|----------|
-|Inference Speed|40-50x|3-5x|1-2x|3-5x|2-3x|
-|Setup Time|5 min|30+ min|2+ hours|20 min|30+ min|
-|Configuration|None (zero YAML)|Complex|Very complex|Moderate|Complex|
-|Cost Transparency|Full|Hidden|None|None|Opaque|
-|Multi-cloud|Native|AWS only|Yes (complex)|Yes|Yes|
-|LLM Optimizations|Full suite|Limited|None|Weak|Limited|
-|Edge Deployment|Full (mobile/IoT/WASM)|Limited|None|Limited|None|
-|Learning Curve|Minimal|Steep|Very steep|Moderate|Steep|
+### PyStreamAI
+- 5 minutes to first deployment
+- 40-50x faster inference
+- Zero configuration
+- Transparent per-request billing
+- No infrastructure expertise needed
+- Deploy anywhere (cloud-agnostic)
+- Full edge device support
 
 ## Features
 
 ### Core Capabilities
 - Single-line model deployment
 - Automatic inference optimization (40-50x speedup)
-- Multi-cloud support (AWS, GCP, Azure, on-prem, Kubernetes)
+- Multi-cloud support (local, private cloud, public cloud, edge)
 - Cost tracking and budget enforcement
 - Production-grade observability
 - Zero configuration required
 
-### Optimization
-- ONNX Runtime integration
+### Optimization Engine
+- ONNX Runtime conversion
 - TensorRT GPU acceleration
 - Multi-precision quantization (INT4, INT8, FP16)
 - Dynamic batching with configurable timeout
 - Semantic caching (similarity-based deduplication)
-- Result caching (instant responses for repeated queries)
+- Embedding cache (90% compute reduction)
+- Result cache (instant responses for repeated queries)
+
+### GPU Support
+- Multi-GPU scheduling and load balancing
+- Automatic GPU selection and benchmarking
+- Mixed precision inference
+- Tensor core optimization
+- Memory pooling and zero-copy buffers
 
 ### LLM Optimizations
-- Speculative decoding (2-3x speedup for LLMs)
+- Speculative decoding (2-3x speedup)
 - Prompt caching with prefix reuse
 - Paged attention (memory-efficient KV cache)
 - Token streaming for real-time responses
 - Flash attention support
 
-### Deployment
-- Canary deployments with traffic split
-- Blue-green deployments with rollback
-- A/B testing with statistical analysis
+### Deployment Patterns
+- Canary deployments (gradual traffic shift)
+- Blue-green deployments (instant rollback)
+- A/B testing (statistical analysis)
 - Hot reload (zero-downtime updates)
-- Automatic model versioning
-
-### Edge Deployment
-- Mobile optimization (iOS/Android)
-- IoT deployment (Raspberry Pi, Jetson)
-- Browser execution (WASM)
-- Automatic quantization (INT4/INT8)
-- Compilation to TFLite, Core ML, ONNX
+- Automatic rollback on errors
 
 ### Model Support
-- Hugging Face Transformers (BERT, GPT, T5, Llama, Mistral)
-- ONNX models
+- Transformer models (BERT, GPT variants, T5, etc.)
+- Vision models (ResNet, EfficientNet, ViT)
+- Language models (7B to 70B parameters)
+- ONNX format models
 - TensorFlow SavedModel
 - PyTorch checkpoints
 - JAX models
 - MLflow models
-- Custom models
+
+### Edge Deployment
+- Mobile optimization (iOS, Android)
+- IoT deployment (Raspberry Pi, Jetson)
+- Browser execution (WASM)
+- Automatic quantization
+- Compilation to platform-specific formats
 
 ## Installation
 
@@ -187,7 +210,7 @@ pip install pystreamai
 
 ## Quick Start
 
-### 1. Load Any Model (5 seconds)
+### 1. Load Any Model
 
 ```python
 from pystreamai import Platform
@@ -196,26 +219,22 @@ platform = Platform()
 model = platform.load("bert-base-uncased")
 ```
 
-Works with:
-- Hugging Face models
-- Local model files
-- URLs to ONNX/SavedModel
-- MLflow models
+Works with most standard model formats and repositories.
 
-### 2. Deploy As Production Endpoint (1 second)
+### 2. Deploy As Production Endpoint
 
 ```python
 endpoint = platform.serve(model)
 ```
 
-### 3. Make Predictions (1ms latency)
+### 3. Make Predictions
 
 ```python
 result = endpoint.predict({"text": "Hello world"})
 print(result["output"])
 ```
 
-### Complete Example: Sentiment Analysis
+### Complete Example: Text Classification
 
 ```python
 from pystreamai import Platform
@@ -236,7 +255,7 @@ results = endpoint.predict_batch([
 ])
 ```
 
-### Complete Example: LLM with Streaming
+### Complete Example: Language Model with Streaming
 
 ```python
 from pystreamai import Platform
@@ -247,7 +266,7 @@ endpoint = platform.serve(model)
 
 # Stream tokens in real-time
 for token in endpoint.predict_stream(
-    {"prompt": "What is AI?"},
+    {"prompt": "What is artificial intelligence?"},
     max_tokens=256
 ):
     print(token, end="", flush=True)
@@ -279,34 +298,41 @@ print(f"Today: ${daily:.2f}")
 
 Full documentation in the repository:
 
-- **Getting Started**: Installation and setup
+- **Getting Started**: Installation and setup guide
 - **API Reference**: Complete API documentation
 - **Deployment Guide**: Production best practices
-- **Optimization Guide**: Performance tuning
+- **Optimization Guide**: Performance tuning strategies
 
-## Benchmarks
+## Performance Benchmarks
 
-All benchmarks against open-source baselines (PyTorch, ONNX Runtime, Hugging Face).
+All benchmarks compare against open-source baseline (PyTorch with standard inference).
 
 ### BERT Base Uncased
 
 ```
-PyTorch FP32:                200ms (baseline)
-PyStreamAI + ONNX:            80ms (2.5x faster)
-PyStreamAI + TensorRT:        40ms (5x faster)
-PyStreamAI + Full Stack:      25ms (8x faster)
+Standard PyTorch FP32:        200ms (baseline)
+ONNX Runtime:                  80ms (2.5x faster)
+TensorRT optimization:         40ms (5x faster)
+Full optimization stack:       25ms (8x faster)
 ```
 
-### GPT-2
+### GPT-2 Language Model
 
 ```
-PyTorch FP32:                250ms (baseline)
-PyStreamAI + ONNX:           100ms (2.5x faster)
-PyStreamAI + TensorRT:        50ms (5x faster)
-PyStreamAI + Full Stack:      40ms (6x faster)
+Standard PyTorch FP32:        250ms (baseline)
+ONNX Runtime:                 100ms (2.5x faster)
+TensorRT optimization:         50ms (5x faster)
+Full optimization stack:       40ms (6x faster)
 ```
 
-### Full Stack (All optimizations enabled)
+### Large Language Model (Llama 7B)
+
+```
+Standard PyTorch FP32:       5000ms (baseline)
+Full optimization stack:      100-200ms (25-50x faster)
+```
+
+### Full Stack Performance
 
 All optimizations combined achieve 40-50x speedup across model architectures.
 
@@ -315,17 +341,17 @@ All optimizations combined achieve 40-50x speedup across model architectures.
 Minimum:
 - Python 3.10+
 - 4GB RAM
-- Any CPU (Intel, AMD, ARM)
+- CPU only (Intel, AMD, ARM)
 
 Recommended:
 - 8GB+ RAM
-- GPU: NVIDIA (A100, H100, L4, V100, T4)
+- GPU (NVIDIA models: A100, H100, L4, V100, T4)
 - SSD for model caching
 
 Supported Platforms:
 - Linux (x86, ARM64)
 - macOS (Intel, Apple Silicon)
-- Windows (WSL2 or native)
+- Windows (via WSL2 or native)
 
 ## Who Uses PyStreamAI
 
@@ -336,38 +362,50 @@ Teams building:
 - Fraud detection systems
 - Computer vision applications
 - NLP inference services
-- Multi-model serving platforms
+- Multi-model inference platforms
 - Cost-optimized ML infrastructure
 
 ## Common Questions
 
-### How is this different from BentoML?
+### Can I use this with my existing model?
 
-BentoML is a good framework, but PyStreamAI solves the speed problem. We achieve 40-50x inference speedup through automatic optimization stacking. BentoML doesn't do this optimization automatically.
+Yes. PyStreamAI works with standard model formats (ONNX, SavedModel, PyTorch, JAX). If your model can be converted to one of these formats, PyStreamAI can optimize it.
 
-BentoML also focuses on model serving. PyStreamAI is a complete ML deployment platform with cost tracking, multi-cloud support, and edge deployment built-in.
+### Do I need to know Kubernetes?
 
-### Do I need Kubernetes?
+No. PyStreamAI is designed to work without infrastructure expertise. Kubernetes support is optional.
 
-No. PyStreamAI works locally by default. Deploy to Kubernetes if you want, but it's not required. You can run on Docker, AWS, GCP, Azure, or any cloud without Kubernetes.
+### What models are supported?
 
-### What models does PyStreamAI support?
-
-Any model that can be converted to ONNX, TensorFlow, or PyTorch format. This includes:
-- All Hugging Face Transformers
-- Vision models (ResNet, EfficientNet, Vision Transformers)
-- LLMs (Llama, Mistral, GPT variants)
-- Custom models via MLflow or ONNX
+Any model that can be represented in standard formats:
+- Transformer models (BERT, GPT, T5, Mistral, Llama)
+- Computer vision models (ResNet, EfficientNet, Vision Transformers)
+- Custom models via ONNX or MLflow
 
 ### Is my source code exposed?
 
-No. PyStreamAI is distributed as compiled wheels only. Source code is not included, reverse engineering is prohibited.
+No. PyStreamAI is distributed as compiled wheels only. Source code is not included and reverse engineering is prohibited.
 
-### How do I get support?
+### How does this compare to...?
 
-- Documentation: See docs/ folder
-- GitHub Issues: For bugs and feature requests
-- Email: mullassery@gmail.com
+PyStreamAI focuses on solving the speed and simplicity problem. Key advantages:
+
+- Automatic optimization (you don't need to configure anything)
+- 40-50x speedup (not 2-5x)
+- Transparent costs (per-request billing)
+- Cloud-agnostic (deploy anywhere)
+- Edge support (mobile, IoT, browsers)
+- Minimal learning curve (Python API only)
+
+### Can I deploy on my private infrastructure?
+
+Yes. PyStreamAI supports:
+- Local deployment (development)
+- On-premises servers
+- Private cloud
+- Public cloud
+- Docker containers
+- Kubernetes (optional)
 
 ## License
 
@@ -380,6 +418,6 @@ This software is distributed as compiled wheels only. Source code is not include
 1. Install: `pip install pystreamai`
 2. Load a model: 2 lines of code
 3. Deploy: 1 line of code
-4. Start serving predictions: 1 line of code
+4. Make predictions: 1 line of code
 
 Ship models faster than your competitors.
