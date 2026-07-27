@@ -1,41 +1,43 @@
-# Source code (proprietary)
-src/
-pystreamai/*.py
-benchmarks/
-*.rs
-
-# Build artifacts
-build/
-*.egg-info/
-__pycache__/
-*.pyc
-*.so
-
-# Environment
-.venv/
-venv/
-env/
+# Sensitive files and credentials
 .env
+.env.local
+.env.*.local
+*.key
+*.pem
+*.crt
+credentials.json
+secrets.json
+.credentials
+config.local.*
+.config.local
+oauth_tokens.json
 
-# IDE
+# IDE files
 .vscode/
 .idea/
 *.swp
-*.swo
-
-# OS
+*~
 .DS_Store
-Thumbs.db
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+
+# Virtual environments
+venv/
+env/
+.venv
 
 # Rust
 target/
 Cargo.lock
 
-# Test artifacts
-.pytest_cache/
-.coverage
-htmlcov/
-
-# Local development
-.claude/
+# Temp files
+*.tmp
 *.log
+temp/
+tmp/
