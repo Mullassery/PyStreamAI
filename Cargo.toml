@@ -1,6 +1,6 @@
 [package]
 name = "pystreamai"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 description = "Rust orchestrator for PyStreamAI - simple ML deployment platform"
 license = "Proprietary"
@@ -22,5 +22,9 @@ anyhow = "1.0"
 thiserror = "1.0"
 async-trait = "0.1"
 dashmap = "5.5"
+prometheus = "0.13"
+lazy_static = "1.4"
+parking_lot = "0.12"
+fxhash = "0.2"
 
 [dev-dependencies]
