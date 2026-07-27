@@ -358,6 +358,6 @@ endpoint = platform.serve(model, batch_size=64)
 
 ## Need Help?
 
-- **GitHub Issues**: https://github.com/mullassery/pystreamai/issues
-- **Discussions**: https://github.com/mullassery/pystreamai/discussions
+- **GitHub Issues**: https://git.example.com/user/pystreamai/issues
+- **Discussions**: https://git.example.com/user/pystreamai/discussions
 - **Email**: mullassery@gmail.com

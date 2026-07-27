@@ -58,7 +58,7 @@ endpoint = platform.serve(model)
 # 1. Convert to ONNX (2-3x faster)
 # 2. Route to ONNX Runtime (or TensorRT on NVIDIA)
 # 3. Add OpenTelemetry tracing (Prometheus scrape-able)
-# 4. Log metrics to MetricBackend (W&B, Datadog, custom)
+# Monitoring system, custom)
 # 5. Track in MLflow (version control)
 
 # Result: Same 5-10x speedup, now with full observability

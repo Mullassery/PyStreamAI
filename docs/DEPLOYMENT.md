@@ -105,7 +105,7 @@ endpoint = platform.serve(
 )
 ```
 
-### Google Cloud
+### Cloud Services
 
 ```python
 from pystreamai import Platform
