@@ -4,13 +4,44 @@ The fastest way to deploy machine learning models to production. 40-50x faster i
 
 ## What's New in v0.2.0
 
-Production-grade observability, edge deployment, and LLM optimizations:
+**Automatic Model Versioning, Intelligent Rollbacks, Cost Optimization, and Multi-Model Orchestration:**
 
-- **Prometheus Metrics**: Full observability with per-model latency (p50/p95/p99), throughput, and cost tracking
-- **Edge Deployment**: Quantize and compile models for iOS, Android, Raspberry Pi, Jetson, WASM, and browsers
-- **LLM Optimizations**: Prompt caching, speculative decoding, paged attention for 2-3x LLM speedup
-- **Error Handling**: 15 specific error types with human-readable messages and recovery guidance
-- **CLI Tool**: Deploy, optimize, and monitor models without writing Python code
+### Core Features (Phases 1-2)
+- **Automatic Versioning**: Every deployment tracked with metrics and history
+- **Health Monitoring**: Real-time error rate, latency P95/P99 tracking
+- **Automatic Rollback**: Instant recovery when metrics degrade (zero config)
+- **GitHub Integration**: Automatic release creation, issue tracking
+- **CI/CD Platforms**: Support for ArgoCD, GitHub Actions, GitLab CI, Jenkins
+
+### Advanced Rollback Strategies (Phase 5)
+- **Instant Rollback**: < 1 second switch for critical failures
+- **Canary Rollback**: Gradual 10% → 25% → 50% → 100% with health checks
+- **Blue-Green Rollback**: Instant switch, keep old version running
+- **Shadow Rollback**: Validate new version in parallel before switching
+
+### Cost & Performance Optimization (Phase 6)
+- **Cost Tracking**: Per-inference cost calculation with daily/monthly projections
+- **Performance Benchmarking**: Latency percentiles, throughput, statistical significance testing
+- **Auto-Recommendations**: Identify cheapest vs fastest versions automatically
+
+### Framework Integration (Phase 8)
+- **TensorFlow Serving**: Native SavedModel deployment and switching
+- **PyTorch/TorchServe**: Model registration and version management
+- **Kubernetes**: Native deployment with service routing
+- **Hugging Face Hub**: Download and version models from HF
+- **Framework Auto-Detection**: Automatically detect and deploy any framework
+
+### Advanced Analytics (Phase 9)
+- **Root Cause Analysis**: Identify 7+ probable causes of degradation
+- **Drift Detection**: Detect data drift, prediction drift, model drift
+- **Anomaly Detection**: Z-score based anomaly detection in predictions
+- **Metric Correlation**: Find which metrics correlate with failures
+
+### Multi-Model Orchestration (Phase 10)
+- **Model Pipelines**: Chain models sequentially, parallel, conditionally, or as ensembles
+- **A/B Testing**: Test multiple model versions with statistical analysis
+- **Pipeline Registry**: Version and promote entire pipelines
+- **Stage Metrics**: Track latency and performance per pipeline stage
 
 ## The Problem
 
@@ -218,11 +249,23 @@ Export metrics to standard platforms via custom integrations.
 - Flash attention support
 
 ### Deployment Patterns
-- Canary deployments (gradual traffic shift)
-- Blue-green deployments (instant rollback)
-- A/B testing (statistical analysis)
-- Hot reload (zero-downtime updates)
-- Automatic rollback on errors
+- Canary deployments (gradual traffic shift with health checks)
+- Blue-green deployments (instant rollback capability)
+- A/B testing (statistical significance testing)
+- Shadow deployments (validate before switching)
+- Automatic rollback on errors (configurable thresholds)
+- Multi-model pipelines (sequential, parallel, ensemble)
+
+### Production Safety (v0.2.0)
+- Automatic model versioning with complete history
+- Real-time health monitoring (error rate, latency)
+- Multiple rollback strategies with traffic shifting
+- Cost tracking per inference (daily/monthly projections)
+- Performance benchmarking with statistical analysis
+- Root cause analysis when degradation detected
+- Drift detection (data, prediction, model)
+- Automatic rollback on threshold breaches
+- Full audit trail for compliance
 
 ### Model Support
 - Transformer models (BERT, GPT variants, T5, etc.)

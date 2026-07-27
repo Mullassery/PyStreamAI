@@ -5,7 +5,7 @@ build-backend = "maturin"
 [project]
 name = "pystreamai"
 version = "0.2.0"
-description = "Simple ML deployment - Kubeflow + KServe replacement"
+description = "Production ML deployment with automatic versioning, intelligent rollbacks, cost optimization, and multi-model orchestration"
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "Proprietary"}
