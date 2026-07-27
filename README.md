@@ -2,6 +2,16 @@
 
 The fastest way to deploy machine learning models to production. 40-50x faster inference. Zero configuration required.
 
+## What's New in v0.2.0
+
+Production-grade observability, edge deployment, and LLM optimizations:
+
+- **Prometheus Metrics**: Full observability with per-model latency (p50/p95/p99), throughput, and cost tracking
+- **Edge Deployment**: Quantize and compile models for iOS, Android, Raspberry Pi, Jetson, WASM, and browsers
+- **LLM Optimizations**: Prompt caching, speculative decoding, paged attention for 2-3x LLM speedup
+- **Error Handling**: 15 specific error types with human-readable messages and recovery guidance
+- **CLI Tool**: Deploy, optimize, and monitor models without writing Python code
+
 ## The Problem
 
 Traditional ML deployment is slow and complex. You've trained a great model, but deploying it requires:
@@ -45,7 +55,7 @@ Your model is now deployed with:
 pip install pystreamai
 ```
 
-Requires Python 3.10+. That's it.
+Requires Python 3.10+. Includes CLI tool for non-Python usage.
 
 ### 2. Load and Deploy (2 minutes)
 
@@ -230,6 +240,43 @@ Export metrics to standard platforms via custom integrations.
 - Browser execution (WASM)
 - Automatic quantization
 - Compilation to platform-specific formats
+
+## CLI Tool
+
+Deploy and manage models without writing Python code:
+
+### Start a Server
+
+```bash
+pystreamai-cli serve bert.onnx --port 8080 --replicas 2
+```
+
+### Run Inference
+
+```bash
+pystreamai-cli predict bert.onnx input.json
+```
+
+### Optimize Model
+
+```bash
+pystreamai-cli optimize bert.onnx --target latency
+# Output: Suggested speedup 40-50x with full stack optimization
+```
+
+### Deploy to Edge
+
+```bash
+pystreamai-cli deploy-edge bert.onnx ios
+# Output: Model compiled for iOS, 74% size reduction, 100ms latency
+```
+
+### Monitor Metrics
+
+```bash
+pystreamai-cli metrics --endpoint http://localhost:8080
+# Output: Latency p50/p95/p99, throughput, error rate, costs
+```
 
 ## Complete Examples
 
