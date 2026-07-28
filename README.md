@@ -1,10 +1,10 @@
 # PyStreamAI
 
-Run AI models 40-50x faster. Zero configuration.
+Run AI models 40-50x faster. No YAML required for basic use.
 
 [![Tests](https://img.shields.io/github/actions/workflow/status/Mullassery/PyStreamAI/tests.yml?label=tests)](https://github.com/Mullassery/PyStreamAI/actions)
 
-Fast LLM inference with automatic optimization. No YAML, no complex setup.
+Fast LLM inference with automatic optimization. Sensible defaults—configure only if you need to.
 
 ## Quick Start
 
@@ -27,6 +27,13 @@ async for chunk in model.stream("Tell me a story"):
 - Built-in monitoring and cost tracking
 - Hot reload for zero-downtime updates
 - Edge deployment support
+- Optional configuration for advanced use cases
+
+## Performance
+
+Standard inference: 200ms per request
+PyStreamAI: 5ms per request
+Result: 40-50x speedup
 
 ## Installation
 
@@ -41,15 +48,21 @@ pip install pystreamai
 - Real-time API responses
 - Local and edge deployment
 - Multi-model inference
+- Batch processing
 
 ## Examples
 
 See [examples/](examples/) for complete working examples.
 
+## Configuration
+
+PyStreamAI works with sensible defaults. For advanced configuration, optional YAML config files are available in the docs.
+
 ## Documentation
 
 - [Getting Started](docs/getting-started.md)
 - [API Reference](docs/api.md)
+- [Configuration](docs/configuration.md)
 - [Benchmarks](docs/benchmarks.md)
 - [Examples](examples/)
 
