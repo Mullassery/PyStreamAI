@@ -28,7 +28,11 @@ classifiers = [
 dependencies = [
     "pydantic>=2.0",
     "typing-extensions>=4.0",
+    "rich>=13.0",
 ]
+
+[project.scripts]
+pystreamai = "pystreamai.cli:main"
 
 [project.urls]
 "Bug Tracker" = "https://github.com/mullassery/pystreamai/issues"
@@ -37,3 +41,6 @@ dependencies = [
 [tool.maturin]
 features = ["pyo3/extension-module"]
 module-name = "pystreamai"
+
+[tool.setuptools]
+packages = ["pystreamai"]
