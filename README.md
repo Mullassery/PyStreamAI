@@ -2,7 +2,11 @@
 
 Deploy and manage inference workloads across cloud providers. Real-time cost tracking, multi-model orchestration, endpoint management. 40-50x inference speedup with Rust+Python.
 
-**Latest Version:** 0.2.1
+**Latest Version:** 0.2.2 | **Python:** 3.10-3.13 | **Status:** ✅ Production Ready
+
+### v0.2.2 Updates
+- 🚀 PyO3 0.21 → 0.22 upgrade for Python 3.13 support
+- 🔧 Build improvements with explicit manifest-path configuration
 
 ## Features
 
