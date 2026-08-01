@@ -39,6 +39,8 @@ Result: 40-50x speedup
 
 ```bash
 pip install pystreamai
+# or with uv
+uv pip install streamai
 
 # Verify installation
 streamai --version
