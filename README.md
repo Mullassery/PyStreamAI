@@ -39,6 +39,9 @@ Result: 40-50x speedup
 
 ```bash
 pip install pystreamai
+
+# Verify installation
+streamai --version
 ```
 
 ## Use Cases
