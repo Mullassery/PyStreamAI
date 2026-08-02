@@ -10,5 +10,5 @@ except ImportError:
     # Fallback for development/import errors
     pass
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 __all__ = ['Stream', 'AI', 'process']
