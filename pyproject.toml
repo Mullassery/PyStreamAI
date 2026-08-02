@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "pystreamai"
-version = "0.2.0"
+version = "0.3.0"
 description = "Production ML deployment with automatic versioning, intelligent rollbacks, cost optimization, and multi-model orchestration"
 readme = "README.md"
 requires-python = ">=3.10"
