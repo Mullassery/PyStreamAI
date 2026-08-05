@@ -1,16 +1,13 @@
 # PyStreamAI
 
-Run AI models 40-50x faster. No YAML required for basic use.
+**Deploy ML inference 40-50x faster. No YAML required.**
+
+Automatic optimization (batching, caching, quantization) turns slow inference into lightning-fast responses. Multi-cloud deployment without vendor lock-in.
 
 [![Tests](https://img.shields.io/github/actions/workflow/status/Mullassery/PyStreamAI/tests.yml?label=tests)](https://github.com/Mullassery/PyStreamAI/actions)
+[![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue)](https://www.python.org)
+[![License: Proprietary](https://img.shields.io/badge/License-Proprietary-blue.svg)](./LICENSE)
 
-Fast LLM inference with automatic optimization. Sensible defaults—configure only if you need to.
-
-## About
-
-PyStreamAI is a production-grade inference platform with 40-50x speedup. Deploy models 
-to AWS, GCP, Azure, and edge devices without YAML configuration. Built for real-world 
-inference workloads with zero vendor lock-in.
 ---
 
 ## Quick Start
