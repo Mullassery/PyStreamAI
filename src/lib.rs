@@ -6,7 +6,7 @@ fn hello() -> String {
 }
 
 #[pymodule]
-fn pystreamai(_py: Python, m: &PyModule) -> PyResult<()> {
+fn pystreamai(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(hello, m)?)?;
     Ok(())
 }
