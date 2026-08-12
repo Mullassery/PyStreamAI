@@ -36,6 +36,11 @@ env/
 target/
 Cargo.lock
 
+# Compiled PyO3/maturin extension (built locally via `maturin develop`)
+pystreamai/_core*.so
+pystreamai/_core*.pyd
+pystreamai/*.dylib
+
 # Temp files
 *.tmp
 *.log

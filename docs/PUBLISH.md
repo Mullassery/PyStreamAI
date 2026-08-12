@@ -1,252 +1,76 @@
-# Publishing PyStreamAI to GitHub
+# Publishing PyStreamAI
 
-Guide to publish wheels and documentation to GitHub (source code excluded).
+How releases are built and published. As of the 2026-08 restoration, the
+full source (Python + Rust) is public in this repository - PyStreamAI is
+no longer distributed as wheels-only with hidden source. If you're looking
+for an older process document that described stripping `src/` and
+`pystreamai/*.py` out of the public repo before pushing: that approach was
+abandoned. It made three past releases (recorded on PyPI as 0.1.0-1.0.0)
+ship a near-empty stub extension with no real functionality behind a
+misleading README. Don't resurrect it.
 
-## Prerequisites
+## Versioning
 
-- GitHub account
-- `gh` CLI installed: https://cli.github.com/
-- Git configured with your GitHub account
+Bump the version in **both** places before tagging - they must match:
+- `pyproject.toml` → `[project] version`
+- `Cargo.toml` → `[package] version`
 
-## Step 1: Create GitHub Repository
+`pystreamai/__init__.py` also has a `__version__` string; keep it in sync
+too (nothing enforces this automatically yet - a genuine gap, see
+`docs/ROADMAP.md`).
 
-```bash
-# Create new repository
-gh repo create PyStreamAI \
-  --owner Mullassery \
-  --public \
-  --source=. \
-  --remote=origin \
-  --push
-
-# Or manually at: https://github.com/new
-# Name: PyStreamAI
-# Owner: Mullassery
-# Description: "The simplest way to deploy AI models to production. 40-50x faster inference. Zero YAML."
-# Public
-```
-
-## Step 2: Verify .gitignore
-
-The `.gitignore` file is already configured to exclude all source code:
-
-```
-src/                  # Rust source
-pystreamai/*.py       # Python implementation
-benchmarks/           # Test code
-*.rs                  # Rust files
-```
-
-Verify what will be pushed:
-```bash
-git status
-# Should show only:
-# - docs/
-# - examples/
-# - .github/
-# - LICENSE
-# - README_PUBLIC.md (rename to README.md when pushing)
-```
-
-## Step 3: Prepare Repository
-
-Rename README:
-```bash
-mv README_PUBLIC.md README.md
-git add README.md
-git commit -m "Update README for public release"
-```
-
-Remove development files:
-```bash
-# Make sure these are in .gitignore
-ls -la | grep -E "(Cargo|src|pystreamai.*\.py|benchmarks)"
-# Should show nothing (all ignored)
-```
-
-## Step 4: Push to GitHub
+## Local build + publish (manual)
 
 ```bash
-# Add remote
-git remote add origin https://github.com/Mullassery/PyStreamAI.git
-
-# Rename branch if needed
-git branch -M main
-
-# Push
-git push -u origin main
-```
-
-Verify:
-```bash
-git remote -v
-# Should show origin pointing to GitHub repo
-```
-
-## Step 5: Create Release
-
-```bash
-# Tag version
-git tag v0.1.0 -m "PyStreamAI v0.1: Production-ready ML inference platform"
-git push origin v0.1.0
-
-# Or use GitHub CLI
-gh release create v0.1.0 \
-  --title "PyStreamAI v0.1" \
-  --notes "First public release: 40-50x faster inference, zero YAML, production-ready"
-```
-
-## Step 6: Build and Publish Wheels
-
-GitHub Actions will automatically build wheels when you tag a release.
-
-Manually (if needed):
-```bash
-# Install dependencies
+# From a clean checkout, with a Python 3.10+ venv active
 pip install maturin twine
+maturin build --release          # writes wheels to target/wheels/, NOT dist/
+twine upload target/wheels/*
+```
 
-# Build wheel
+`~/.pypirc` (or `TWINE_USERNAME`/`TWINE_PASSWORD` env vars) must already be
+configured with a PyPI API token for the `pystreamai` project.
+
+Before uploading, check you're not colliding with an existing version -
+PyPI never allows re-uploading a version number, even a bad one:
+
+```bash
+pip index versions pystreamai
+# or: curl -s https://pypi.org/pypi/pystreamai/json | python3 -m json.tool
+```
+
+## CI build + publish
+
+`.github/workflows/build-wheels.yml` builds and publishes automatically
+when a `v*` tag is pushed:
+
+```bash
+git tag v1.1.0
+git push origin v1.1.0
+```
+
+It currently authenticates to PyPI with a long-lived `PYPI_TOKEN` repo
+secret. **Recommended follow-up**: switch to [PyPI Trusted Publishing](
+https://docs.pypi.org/trusted-publishers/) (OIDC) via
+`pypa/gh-action-pypi-publish`, which needs no stored token at all. That
+requires registering this repo's GitHub Actions workflow as a trusted
+publisher on the PyPI project's own settings page
+(`pypi.org/manage/project/pystreamai/settings/publishing/`) - a
+one-time step done on pypi.org, not something a commit here can do.
+
+## What actually ships in the wheel
+
+The compiled wheel embeds:
+- `pystreamai/*.py` - the pure-Python package (see README for what's real
+  vs. simulated in this layer)
+- `pystreamai/_core.<platform>.so` - the compiled Rust extension
+  (`src/*.rs`, built via PyO3/maturin)
+
+Verify locally before tagging a release:
+
+```bash
 maturin build --release
-
-# Upload to PyPI
-twine upload dist/* -u __token__ -p $PYPI_TOKEN
+pip install --force-reinstall target/wheels/*.whl
+python3 -c "import pystreamai; print(pystreamai.__version__); from pystreamai import _core; print(_core.Platform)"
+pytest
 ```
-
-Or set up GitHub Actions secrets:
-1. Go to repo Settings → Secrets and variables → Actions
-2. Add `PYPI_TOKEN` with your PyPI token
-3. Commit the `.github/workflows/build-wheels.yml` file
-4. On tag push, wheels auto-build and upload
-
-## Step 7: Verify Public Release
-
-```bash
-# Check what's in the repo
-git ls-files
-
-# Should show only:
-# - docs/
-# - examples/
-# - .github/
-# - LICENSE
-# - README.md
-# - pyproject.toml
-# - Cargo.toml (build config only)
-# - setup.py (if included)
-
-# Should NOT show:
-# - src/ (source code)
-# - pystreamai/*.py (implementation)
-# - benchmarks/ (tests)
-```
-
-## Step 8: Test Installation
-
-After wheels are published to PyPI:
-
-```bash
-# Install in fresh environment
-python -m venv test_env
-source test_env/bin/activate
-pip install pystreamai
-
-# Verify it works
-python -c "from pystreamai import Platform; print('✓ PyStreamAI installed successfully')"
-```
-
-## What Gets Published
-
-### ✅ Included
-- Compiled wheels (.whl files)
-- Documentation (docs/ folder)
-- Examples (examples/ folder)
-- LICENSE and README
-- GitHub Actions workflows
-
-### ❌ Excluded (by .gitignore)
-- Rust source code (src/)
-- Python implementation (pystreamai/*.py)
-- Build artifacts (target/, build/)
-- Test/benchmark code (benchmarks/)
-- Development files (.claude/)
-
-## GitHub Repository Structure (Public)
-
-```
-PyStreamAI/
-├── .github/
-│   └── workflows/
-│       └── build-wheels.yml      # Auto-build and publish wheels
-├── docs/
-│   ├── GETTING_STARTED.md        # User onboarding
-│   ├── API_REFERENCE.md          # Complete API docs
-│   ├── DEPLOYMENT.md             # Production guide
-│   └── OPTIMIZATION.md           # Performance tuning
-├── examples/
-│   ├── serve_model.py            # Basic example
-│   └── start_http_server.py      # HTTP server example
-├── LICENSE                        # Proprietary license
-├── README.md                      # Public-facing readme
-├── pyproject.toml                # Python package config
-└── Cargo.toml                    # Rust build config (wheels only)
-```
-
-## Verification Checklist
-
-- [ ] GitHub repo created
-- [ ] .gitignore correctly excludes source
-- [ ] `git ls-files` shows only docs/examples/config
-- [ ] README.md present (renamed from README_PUBLIC.md)
-- [ ] LICENSE included
-- [ ] GitHub Actions workflow configured
-- [ ] Release tagged (v0.1.0)
-- [ ] Wheels built successfully
-- [ ] Wheels published to PyPI
-- [ ] `pip install pystreamai` works
-- [ ] Documentation accessible on GitHub
-
-## PyPI Setup
-
-To publish wheels to PyPI:
-
-1. Create PyPI account: https://pypi.org/account/register/
-2. Get API token: https://pypi.org/manage/account/
-3. Set GitHub secret: `PYPI_TOKEN`
-4. Commit `.github/workflows/build-wheels.yml`
-5. Tag release: `git tag v0.1.0 && git push origin v0.1.0`
-6. GitHub Actions automatically builds and publishes wheels
-
-## Maintaining Security
-
-The `.gitignore` file ensures:
-- No source code leaks
-- Only compiled wheels distributed
-- Proprietary implementation stays private
-- Users get functionality without source access
-
-If you need to update documentation:
-```bash
-# Edit docs/
-git add docs/
-git commit -m "Update documentation"
-git push origin main
-
-# No rebuild needed - documentation is plain markdown
-```
-
-If you need to release a new version:
-```bash
-# Update version in Cargo.toml and pyproject.toml
-# Commit changes
-git tag v0.2.0
-git push origin v0.2.0
-
-# GitHub Actions automatically builds and publishes v0.2.0 wheels
-```
-
----
-
-For questions or issues during release, check:
-- GitHub Actions logs: repo → Actions → build-wheels
-- PyPI package page: pypi.org/project/pystreamai/
-- Installation troubleshooting: see docs/GETTING_STARTED.md

@@ -1,5 +1,17 @@
 # PyStreamAI Roadmap
 
+> **Read this before the numbers below**: this roadmap predates the
+> 2026-08 source restoration and mixes real shipped code with aspirational
+> targets that were never measured against real models - see README.md's
+> "How this works today" section for what's actually implemented today vs.
+> simulated. Specifically: the speedup/latency/throughput figures in this
+> document (e.g. "5-10x speedup", "1000+ req/sec") were written as goals,
+> not benchmark output - `pystreamai/serving.py`'s inference path is a
+> timed `asyncio.sleep()` simulation, not real model inference, and
+> several "✅ COMPLETE" items below (e.g. cost/GPU speedup multipliers)
+> are hardcoded constants rather than measured results. Treat this page as
+> a plan, not a changelog of verified claims.
+
 ## v0.1: Core ✅ COMPLETE
 
 **Focus: Inference speed and simplicity**
@@ -196,15 +208,20 @@ Inference Response
 
 ## Competitive Positioning
 
+*Unverified - this table was written as marketing copy, not derived from a
+head-to-head benchmark against SageMaker/Databricks/BentoML/Kubeflow. The
+"Speed" row in particular should not be trusted until real comparative
+benchmarks exist (see "Key Metrics to Track" below).*
+
 | Feature | PyStreamAI | SageMaker | Databricks | BentoML | Kubeflow |
 |---------|-----------|----------|-----------|---------|----------|
-| Speed | ✅ 10-20x | ⚠️ 3-5x | ⚠️ 2-3x | ⚠️ 3-5x | ❌ 1-2x |
+| Speed | ⚠️ unverified | ⚠️ unverified | ⚠️ unverified | ⚠️ unverified | ⚠️ unverified |
 | Simplicity | ✅ Zero YAML | ⚠️ YAML | ⚠️ Complex | ✅ Python-first | ❌ Very complex |
 | Cost Control | ✅ Per-request | ⚠️ Opaque | ⚠️ Opaque | ❌ None | ❌ None |
-| Multi-cloud | ✅ Native | ❌ AWS only | ✅ Yes | ✅ Yes | ✅ Yes |
-| LLM Support | ✅ Planned | ✅ Yes | ✅ Yes | ⚠️ Basic | ❌ No |
-| Edge Deploy | ✅ Planned | ⚠️ Limited | ❌ No | ⚠️ Limited | ❌ No |
-| Model Registry | ✅ MLflow+HF | ✅ Yes | ✅ Yes | ✅ Yes | ⚠️ Basic |
+| Multi-cloud | ⚠️ Planned (local backend only today) | ❌ AWS only | ✅ Yes | ✅ Yes | ✅ Yes |
+| LLM Support | ⚠️ Planned | ✅ Yes | ✅ Yes | ⚠️ Basic | ❌ No |
+| Edge Deploy | ⚠️ Planned | ⚠️ Limited | ❌ No | ⚠️ Limited | ❌ No |
+| Model Registry | ⚠️ MLflow/HF integration, optional deps | ✅ Yes | ✅ Yes | ✅ Yes | ⚠️ Basic |
 
 ---
 

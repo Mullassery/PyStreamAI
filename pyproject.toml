@@ -4,8 +4,8 @@ build-backend = "maturin"
 
 [project]
 name = "pystreamai"
-version = "0.3.0"
-description = "Production ML deployment with automatic versioning, intelligent rollbacks, cost optimization, and multi-model orchestration"
+version = "1.1.0"
+description = "ML deployment toolkit: canary/A-B deployment routing, cost tracking, request scheduling, hot model reload, and ONNX Runtime inference"
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "Proprietary"}
@@ -30,10 +30,52 @@ dependencies = [
     "typing-extensions>=4.0",
 ]
 
+[project.optional-dependencies]
+# pystreamai.api / pystreamai.serving import fastapi/uvicorn unconditionally.
+serving = [
+    "fastapi>=0.104.0",
+    "uvicorn[standard]>=0.24.0",
+]
+# pystreamai.onnx_runtime imports onnxruntime/numpy unconditionally.
+onnx = [
+    "onnxruntime>=1.15.0",
+    "numpy>=1.24.0",
+]
+# pystreamai.observability can export to Prometheus if installed.
+observability = [
+    "prometheus-client>=0.19.0",
+]
+# pystreamai.model_registry can integrate with MLflow/HF Hub if installed.
+registry = [
+    "mlflow>=2.8.0",
+    "huggingface_hub>=0.19.0",
+]
+dev = [
+    "pytest>=7.0",
+    "pytest-asyncio>=0.21",
+    "ruff>=0.1.0",
+]
+
 [project.urls]
 "Bug Tracker" = "https://github.com/mullassery/pystreamai/issues"
 "Homepage" = "https://github.com/mullassery/pystreamai"
 
 [tool.maturin]
 features = ["pyo3/extension-module"]
-module-name = "pystreamai"
+module-name = "pystreamai._core"
+
+[tool.ruff]
+target-version = "py310"
+line-length = 120
+
+[tool.ruff.lint]
+# Pin to pyflakes + core pycodestyle errors rather than ruff's shifting
+# "all rules" default - keeps CI failures meaningful (real bugs: unused
+# imports/names, undefined names, syntax issues) instead of churning on
+# style preferences (e.g. typing.Dict vs dict) across ~4.6k lines of
+# restored code that predates this rule set.
+select = ["E4", "E7", "E9", "F"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "strict"

@@ -1,30 +1,26 @@
 [package]
 name = "pystreamai"
-version = "0.3.0"
+version = "1.1.0"
 edition = "2021"
 description = "Rust orchestrator for PyStreamAI - simple ML deployment platform"
 license = "Proprietary"
 
 [lib]
-name = "pystreamai"
+name = "_core"
 crate-type = ["cdylib"]
 
+# NOTE (restoration audit, 2026-08): the pre-strip Cargo.toml declared tokio,
+# serde, serde_json, tracing, tracing-subscriber, anyhow, thiserror, dashmap,
+# prometheus, lazy_static, parking_lot and fxhash, but grepping the actual
+# restored src/*.rs shows none of them are referenced anywhere. Only pyo3,
+# uuid (src/scheduler.rs), chrono (src/scheduler.rs, src/storage.rs) and
+# async-trait (src/backend.rs) are genuinely used, so the rest were removed
+# rather than carried forward as dead weight. Re-add individually if/when
+# code that needs them is written.
 [dependencies]
 pyo3 = { version = "0.23", features = ["extension-module"] }
-tokio = { version = "1", features = ["full"] }
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-tracing = "0.1"
-tracing-subscriber = "0.3"
 uuid = { version = "1.0", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
-anyhow = "1.0"
-thiserror = "1.0"
 async-trait = "0.1"
-dashmap = "5.5"
-prometheus = "0.13"
-lazy_static = "1.4"
-parking_lot = "0.12"
-fxhash = "0.2"
 
 [dev-dependencies]

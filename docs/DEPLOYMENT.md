@@ -1,5 +1,7 @@
 # PyStreamAI Deployment Guide
 
+> **Note (2026-08 restoration)**: this document predates the source restoration and describes a larger planned API surface than what's currently implemented (e.g. some methods/classes/install extras mentioned below don't exist yet). See the repository [README.md](../README.md) for the up-to-date, verified picture of what's real vs. planned before relying on examples here.
+
 Deploy AI models to production with PyStreamAI.
 
 ## Local Development

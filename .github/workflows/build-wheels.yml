@@ -28,6 +28,18 @@ jobs:
 
       - name: Build wheel
         run: maturin build --release
+        # NOTE: maturin writes wheels to target/wheels/, not dist/ - the
+        # `twine upload dist/*` this workflow used to run would silently
+        # match zero files. Fixed to point at the real output directory.
 
       - name: Upload to PyPI
-        run: twine upload dist/* -u __token__ -p ${{ secrets.PYPI_TOKEN }}
+        # NOTE (restoration audit, 2026-08): this uses a long-lived PYPI_TOKEN
+        # repo secret via `twine -p`. PyPI Trusted Publishing (OIDC, via
+        # pypa/gh-action-pypi-publish) is the more secure modern approach -
+        # no long-lived token stored in GitHub at all - but it requires
+        # registering this repo's GitHub Actions OIDC publisher on the
+        # PyPI project settings page (pypi.org/manage/project/pystreamai/settings/publishing/),
+        # which is outside what this repo's files can configure. Recommended
+        # follow-up: register trusted publishing on PyPI, then switch this
+        # step to pypa/gh-action-pypi-publish@release/v1 with no token.
+        run: twine upload target/wheels/* -u __token__ -p ${{ secrets.PYPI_TOKEN }}
