@@ -75,15 +75,20 @@ docker run -p 8080:8080 pystreamai:latest
 
 ## Cloud Deployment
 
-### AWS EC2
+> Cloud backends (`backend="<cloud>"`, managed-ML-platform integration,
+> auto-provisioned load balancers/URLs, etc.) are planned but not
+> implemented in this repository yet — see README.md. The examples below
+> illustrate the intended shape only and use placeholder backend names.
+
+### Cloud VM (generic)
 
 ```python
 from pystreamai import Platform
 
 platform = Platform(
-    backend="aws",
+    backend="cloud-vm",
     region="us-west-2",
-    instance_type="g4dn.xlarge"  # NVIDIA GPU
+    instance_type="gpu.xlarge"  # NVIDIA GPU
 )
 
 model = platform.load("bert-base-uncased")
@@ -91,29 +96,29 @@ endpoint = platform.serve(model, replicas=3)
 
 # Auto-deployed with load balancer
 print(endpoint.get_url())
-# https://your-endpoint.us-west-2.aws.pystreamai.io
+# https://your-endpoint.example.pystreamai.io
 ```
 
-### AWS SageMaker
+### Managed ML platform (generic)
 
 ```python
-platform = Platform(backend="aws", use_sagemaker=True)
+platform = Platform(backend="managed-ml", use_managed_endpoints=True)
 model = platform.load("bert-base-uncased")
 
 endpoint = platform.serve(
     model,
-    instance_type="ml.g4dn.xlarge",
+    instance_type="gpu.xlarge",
     auto_scaling_target_value=70.0  # CPU utilization
 )
 ```
 
-### Cloud Services
+### Managed container platform (generic)
 
 ```python
 from pystreamai import Platform
 
 platform = Platform(
-    backend="gcp",
+    backend="managed-containers",
     project_id="my-project",
     region="us-central1"
 )
@@ -121,18 +126,18 @@ platform = Platform(
 model = platform.load("bert-base-uncased")
 endpoint = platform.serve(model, replicas=3)
 
-# Deploys to Cloud Run
+# Deploys to a managed container-run service
 print(endpoint.get_url())
-# https://pystreamai-xxxxx-uc.a.run.app
+# https://pystreamai-xxxxx.example.run.app
 ```
 
-### Azure
+### Container instances (generic)
 
 ```python
 from pystreamai import Platform
 
 platform = Platform(
-    backend="azure",
+    backend="container-instances",
     resource_group="my-rg",
     workspace_name="my-workspace",
     region="eastus"
@@ -141,7 +146,7 @@ platform = Platform(
 model = platform.load("bert-base-uncased")
 endpoint = platform.serve(model)
 
-# Deploys to Azure Container Instances
+# Deploys to a managed container-instance service
 print(endpoint.get_url())
 ```
 
@@ -240,7 +245,7 @@ livenessProbe:
 ```python
 from pystreamai import Platform
 
-platform = Platform(backend="aws")
+platform = Platform(backend="cloud-vm")
 
 # Deploy current model
 model_v1 = platform.load("bert-v1")

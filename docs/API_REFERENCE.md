@@ -15,9 +15,8 @@ Create a new platform instance.
 **Parameters:**
 - `backend` (str): Execution backend
   - `"local"` — Run on local machine (default)
-  - `"aws"` — AWS EC2/SageMaker
-  - `"gcp"` — Cloud Services
-  - `"azure"` — Azure
+  - Cloud backends (e.g. major cloud VM/managed-ML platforms) are planned
+    but not implemented yet — see README.md
 - `gpu` (str, optional): GPU type
   - `"A100"`, `"H100"`, `"L4"`, `"V100"`, `"T4"`, `"RTX4090"`
 - `num_gpus` (int): Number of GPUs (default: 1)

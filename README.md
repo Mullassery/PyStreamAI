@@ -209,6 +209,31 @@ directly) to build a runnable extension. `cargo test` runs 16 unit tests
 covering the non-PyO3-exposed logic in `scheduler.rs`, `storage.rs`,
 `executor.rs`, and `gpu.rs`.
 
+## Known issues
+
+- `pystreamai.model_registry.HuggingFaceRegistry.upload_model()` checks that
+  `huggingface_hub` is importable and reachable but does not perform a real
+  upload yet - it logs a warning and returns `True` regardless (see the
+  `TODO` in `pystreamai/model_registry.py`).
+- `pystreamai.observability`'s OpenTelemetry backend creates an
+  `inference_speedup` observable gauge with no callback wired up, so it
+  never reports a value (see the `TODO` in `pystreamai/observability.py`).
+- `docs/GETTING_STARTED.md`, `docs/API_REFERENCE.md`, and
+  `docs/DEPLOYMENT.md` describe cloud backend config options that are not
+  implemented - only `backend="local"` is real. Those docs have been
+  reworded to say so explicitly and to drop vendor-specific naming, but
+  the underlying feature itself remains unbuilt; treat this README as the
+  source of truth.
+- No open GitHub issues as of this pass (2026-08-17).
+- Published PyPI version (`1.1.0`) matches `pyproject.toml` and
+  `Cargo.toml` - no version drift.
+- Fixed in this pass: trademarked cloud-vendor names removed from `docs/`,
+  the GitHub repository's "About" description (previously claimed
+  "40-50x faster... zero vendor lock-in" with no benchmark backing it),
+  and every code example in this README verified against the actual
+  source (`pystreamai/deployment.py`, `cost_tracking.py`,
+  `request_scheduler.py`, `onnx_runtime.py`, `api.py`).
+
 ## Development
 
 ```bash

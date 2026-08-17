@@ -209,19 +209,19 @@ Inference Response
 ## Competitive Positioning
 
 *Unverified - this table was written as marketing copy, not derived from a
-head-to-head benchmark against SageMaker/Databricks/BentoML/Kubeflow. The
-"Speed" row in particular should not be trusted until real comparative
+head-to-head benchmark against major managed ML platforms or BentoML/Kubeflow.
+The "Speed" row in particular should not be trusted until real comparative
 benchmarks exist (see "Key Metrics to Track" below).*
 
-| Feature | PyStreamAI | SageMaker | Databricks | BentoML | Kubeflow |
+| Feature | PyStreamAI | Major managed ML platform A | Major managed ML platform B | BentoML | Kubeflow |
 |---------|-----------|----------|-----------|---------|----------|
-| Speed | ⚠️ unverified | ⚠️ unverified | ⚠️ unverified | ⚠️ unverified | ⚠️ unverified |
-| Simplicity | ✅ Zero YAML | ⚠️ YAML | ⚠️ Complex | ✅ Python-first | ❌ Very complex |
-| Cost Control | ✅ Per-request | ⚠️ Opaque | ⚠️ Opaque | ❌ None | ❌ None |
-| Multi-cloud | ⚠️ Planned (local backend only today) | ❌ AWS only | ✅ Yes | ✅ Yes | ✅ Yes |
-| LLM Support | ⚠️ Planned | ✅ Yes | ✅ Yes | ⚠️ Basic | ❌ No |
-| Edge Deploy | ⚠️ Planned | ⚠️ Limited | ❌ No | ⚠️ Limited | ❌ No |
-| Model Registry | ⚠️ MLflow/HF integration, optional deps | ✅ Yes | ✅ Yes | ✅ Yes | ⚠️ Basic |
+| Speed | unverified | unverified | unverified | unverified | unverified |
+| Simplicity | Zero YAML | YAML | Complex | Python-first | Very complex |
+| Cost Control | Per-request | Opaque | Opaque | None | None |
+| Multi-cloud | Planned (local backend only today) | Single-cloud only | Yes | Yes | Yes |
+| LLM Support | Planned | Yes | Yes | Basic | No |
+| Edge Deploy | Planned | Limited | No | Limited | No |
+| Model Registry | MLflow/HF integration, optional deps | Yes | Yes | Yes | Basic |
 
 ---
 

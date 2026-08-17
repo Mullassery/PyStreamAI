@@ -82,7 +82,7 @@ Central interface for all operations.
 from pystreamai import Platform
 
 platform = Platform(
-    backend="local",      # or "aws", "gcp", "azure"
+    backend="local",      # or a supported cloud backend (planned, not yet implemented)
     gpu="A100",          # optional GPU type
     num_gpus=1           # number of GPUs
 )
@@ -223,21 +223,24 @@ endpoint = platform.serve(model)
 
 ### Cloud Deployment
 
-#### AWS
+Cloud backends are a planned, not-yet-implemented part of the API (see
+README.md). The examples below illustrate the intended shape only:
+
+#### Major cloud provider (compute VM)
 ```python
-platform = Platform(backend="aws", region="us-west-2")
-endpoint = platform.serve(model, instance_type="ml.g4dn.xlarge")
+platform = Platform(backend="cloud-a", region="us-west-2")
+endpoint = platform.serve(model, instance_type="gpu.xlarge")
 ```
 
-#### GCP
+#### Major cloud provider (managed ML platform)
 ```python
-platform = Platform(backend="gcp", region="us-central1")
-endpoint = platform.serve(model, machine_type="n1-standard-4")
+platform = Platform(backend="cloud-b", region="us-central1")
+endpoint = platform.serve(model, machine_type="standard-4")
 ```
 
-#### Azure
+#### Major cloud provider (container instances)
 ```python
-platform = Platform(backend="azure", region="eastus")
+platform = Platform(backend="cloud-c", region="eastus")
 endpoint = platform.serve(model)
 ```
 
