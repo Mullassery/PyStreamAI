@@ -1,10 +1,11 @@
 """Tests for pystreamai.platform and pystreamai.decorators.
 
-Note: Platform.train()/serve() and Endpoint.predict() in this pure-Python
-layer are intentionally lightweight simulations (no real training/inference
+Note: Platform.train() and Endpoint.predict() without a real .onnx model
+are intentionally lightweight simulations (no real training/inference
 happens) - see README "How this works today" section. These tests verify
 the simulated control-flow and bookkeeping behave as documented, not that
-real ML work occurs.
+real ML work occurs. For real ONNX inference through Endpoint.predict(),
+see tests/test_platform_onnx_predict.py.
 """
 
 from pathlib import Path
@@ -86,13 +87,20 @@ class TestGlobalPlatform:
 
     def test_set_platform_replaces_singleton(self):
         original = get_platform()
-        new_platform = set_platform(backend="aws")
+        new_platform = set_platform(backend="local")
         try:
             assert new_platform is get_platform()
             assert new_platform is not original
-            assert new_platform.backend == "aws"
+            assert new_platform.backend == "local"
         finally:
             set_platform(backend="local")  # restore for other tests
+
+    def test_set_platform_with_unimplemented_backend_raises(self):
+        """backend="aws"/"gcp"/"azure" used to be silently accepted and
+        stored with zero effect on behavior. There's no cloud-provisioning
+        code in this package, so this must fail loudly instead."""
+        with pytest.raises(NotImplementedError):
+            set_platform(backend="aws")
 
 
 class TestDecorators:

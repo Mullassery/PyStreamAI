@@ -55,16 +55,24 @@ pre-1.0 development snapshot:
 
 **1. A pure-Python simulation layer** (`pystreamai.platform`,
 `pystreamai.decorators`, and most of the package). `Platform.train()` /
-`Platform.serve()`, `@train`/`@serve`/`@pipeline`, and
-`Endpoint.predict()` do **not** run real training or inference - they
-return canned/simulated values (e.g. `Endpoint.predict()` always reports
-`latency_ms=42.5`, optionally divided by a hardcoded "GPU speedup"
-constant). `pystreamai.serving.InferenceServer` batches and times
-requests for real, but the "inference" it runs underneath is an
-`asyncio.sleep()` standing in for a real model call. This layer is useful
-for prototyping the *control flow* of a deployment pipeline (batching,
-scheduling, canary routing, cost accounting) without a real model
-attached - it is not yet wired to actually run one.
+`TrainingJob.wait()` do **not** run real training - `wait()` returns a
+canned path without producing anything. `Platform.serve()` /
+`Endpoint.predict()` are now wired to real inference *when you give them
+a real model*: pass a path to a real `.onnx` file (or an already-loaded
+`pystreamai.onnx_runtime.ONNXModelLoader`) to `serve()`, and the returned
+`Endpoint.predict()` runs genuine inference through onnxruntime with real
+measured latency (`result["simulated"] is False`). Pass anything else (an
+in-memory model object, a non-`.onnx` path, or nothing) and you get the
+old simulated response — `latency_ms=42.5`, optionally divided by a
+hardcoded "GPU speedup" constant — but now explicitly labeled
+`result["simulated"] is True` rather than looking identical to a real
+result. `pystreamai.serving.InferenceServer` batches and times requests
+for real, but the "inference" it runs underneath is still an
+`asyncio.sleep()` standing in for a real model call (it doesn't yet go
+through `Endpoint`/`ONNXModelLoader`). This layer is useful for
+prototyping the *control flow* of a deployment pipeline (batching,
+scheduling, canary routing, cost accounting) with or without a real
+`.onnx` model attached — training still isn't real for any model type.
 
 **2. A compiled Rust extension** (`pystreamai._core`, built from `src/*.rs`
 via PyO3/maturin) exposing `Platform`, `GPUInfo`, `CUDAProfiler`, and
@@ -221,9 +229,17 @@ covering the non-PyO3-exposed logic in `scheduler.rs`, `storage.rs`,
 - `docs/GETTING_STARTED.md`, `docs/API_REFERENCE.md`, and
   `docs/DEPLOYMENT.md` describe cloud backend config options that are not
   implemented - only `backend="local"` is real. Those docs have been
-  reworded to say so explicitly and to drop vendor-specific naming, but
-  the underlying feature itself remains unbuilt; treat this README as the
-  source of truth.
+  reworded to say so explicitly and to drop vendor-specific naming.
+  `Platform(backend=...)` now raises `NotImplementedError` immediately for
+  anything other than `"local"`, instead of silently accepting e.g.
+  `backend="aws"` and storing it with zero effect on behavior (the
+  previous behavior — confirmed by grep, `self.backend` was never read
+  anywhere after being set).
+- `Endpoint.predict()` now runs genuine inference through onnxruntime when
+  `Platform.serve()` was given a real `.onnx` file (or a preloaded
+  `pystreamai.onnx_runtime.ONNXModelLoader`) — see "How this works today"
+  above. Training (`Platform.train()`) is still not real for any model
+  type; only the serving/inference path was wired up.
 - No open GitHub issues as of this pass (2026-08-17).
 - Published PyPI version (`1.1.0`) matches `pyproject.toml` and
   `Cargo.toml` - no version drift.
