@@ -11,7 +11,7 @@ with maturin.
 
 ---
 
-## Status: early / v1.x, source-available
+## Status: early / v2.0.0, source-available
 
 This project's public repository briefly shipped compiled wheels with the
 source code deliberately excluded ("kept locally"). That was reversed in
@@ -296,16 +296,16 @@ covering the non-PyO3-exposed logic in `scheduler.rs`, `storage.rs`,
   disconnected prototype — untouched by the training/serving fixes in
   this pass. Its GPU/TensorRT numbers are the same kind of hardcoded
   constant as `pystreamai.gpu`, independently.
-- No open GitHub issues as of this pass (2026-08-17).
-- **Breaking changes in this pass** (not yet reflected in a version bump —
-  see below): `TrainingJob.wait()` now returns the real trained
-  model/artifact instead of always a `Path`; `Platform.serve()`/
-  `Endpoint(...)` now raise `TypeError` for a model with no real way to
-  run inference instead of returning it as `simulated: True`;
-  `InferenceServer.predict()`/`pystreamai.api`'s `/predict` now raise/500
-  if you haven't called `load_model()` first; `create_api_server()`/
-  `APIServer.__init__()` gained a required `model` parameter. Anything
-  calling this package's train/serve/predict path will need updating.
+- No open GitHub issues as of this pass (2026-08-18).
+- **Breaking changes in v2.0.0** (bumped from 1.1.0 for exactly this reason):
+  `TrainingJob.wait()` now returns the real trained model/artifact instead
+  of always a `Path`; `Platform.serve()`/`Endpoint(...)` now raise
+  `TypeError` for a model with no real way to run inference instead of
+  returning it as `simulated: True`; `InferenceServer.predict()`/
+  `pystreamai.api`'s `/predict` now raise/500 if you haven't called
+  `load_model()` first; `create_api_server()`/`APIServer.__init__()`
+  gained a required `model` parameter. Anything calling this package's
+  train/serve/predict path will need updating.
 - Fixed in this pass: trademarked cloud-vendor names removed from `docs/`,
   the GitHub repository's "About" description (previously claimed
   "40-50x faster... zero vendor lock-in" with no benchmark backing it),
