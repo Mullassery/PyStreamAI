@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "pystreamai"
-version = "1.1.0"
+version = "2.0.0"
 description = "ML deployment toolkit: canary/A-B deployment routing, cost tracking, request scheduling, hot model reload, and ONNX Runtime inference"
 readme = "README.md"
 requires-python = ">=3.10"
