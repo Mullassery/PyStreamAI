@@ -53,26 +53,45 @@ There is no CLI (`pystreamai --version` etc. does not exist yet).
 PyStreamAI is two mostly-independent layers restored from an earlier,
 pre-1.0 development snapshot:
 
-**1. A pure-Python simulation layer** (`pystreamai.platform`,
-`pystreamai.decorators`, and most of the package). `Platform.train()` /
-`TrainingJob.wait()` do **not** run real training - `wait()` returns a
-canned path without producing anything. `Platform.serve()` /
-`Endpoint.predict()` are now wired to real inference *when you give them
-a real model*: pass a path to a real `.onnx` file (or an already-loaded
-`pystreamai.onnx_runtime.ONNXModelLoader`) to `serve()`, and the returned
-`Endpoint.predict()` runs genuine inference through onnxruntime with real
-measured latency (`result["simulated"] is False`). Pass anything else (an
-in-memory model object, a non-`.onnx` path, or nothing) and you get the
-old simulated response — `latency_ms=42.5`, optionally divided by a
-hardcoded "GPU speedup" constant — but now explicitly labeled
-`result["simulated"] is True` rather than looking identical to a real
-result. `pystreamai.serving.InferenceServer` batches and times requests
-for real, but the "inference" it runs underneath is still an
-`asyncio.sleep()` standing in for a real model call (it doesn't yet go
-through `Endpoint`/`ONNXModelLoader`). This layer is useful for
-prototyping the *control flow* of a deployment pipeline (batching,
-scheduling, canary routing, cost accounting) with or without a real
-`.onnx` model attached — training still isn't real for any model type.
+**1. A pure-Python layer** (`pystreamai.platform`, `pystreamai.decorators`,
+`pystreamai.serving`, `pystreamai.api`, and most of the package). As of
+this pass, this layer runs **real training and real inference against
+whatever model you actually give it** — there is no simulated/fabricated
+response path left anywhere in it:
+
+- `Platform.train(code, dataset)` runs `code` for real: if `code` is a
+  callable, it's called as `code(dataset)` and its real return value is
+  the trained model (`job.wait()` returns it, or raises the real
+  exception if `code` raised). If `code` is a path to a real script, it's
+  run as `python <code> --dataset <dataset> --output <path>` in a real
+  subprocess, and `job.wait()` returns the real artifact path the script
+  wrote — or raises if it exited non-zero or didn't write one. Anything
+  else (a non-existent path, a non-callable) raises `TypeError`
+  immediately, not a fake successful job.
+- `Platform.serve(model)` / `Endpoint.predict()` run real inference: a
+  real `.onnx` file (or `pystreamai.onnx_runtime.ONNXModelLoader`) gets
+  real onnxruntime inference; an object with a callable `.predict()`
+  method or a plain callable gets called for real. Anything else raises
+  `TypeError` at `serve()` time — there is no "simulated" fallback
+  response and no `latency_ms=42.5` constant left in the code.
+- `pystreamai.serving.InferenceServer` batches and times requests for
+  real *and* runs real per-request inference once you call
+  `await server.load_model(model_id, model)` — `predict()` raises
+  `RuntimeError` if you haven't. `pystreamai.api.create_api_server(model_id, model, ...)`
+  requires the real model up front for the same reason. Fixed in this
+  pass: a real concurrency bug where multiple requests batched together
+  via `asyncio.gather` would deadlock (only whichever request happened to
+  perform the batch flush ever got a result; the rest polled an
+  already-empty queue forever) — every request in a shared batch now
+  correctly gets its own real result and the real batch size it was part
+  of.
+- `gpu_id`/`cost_usd` on inference responses are `None`/`0.0` always —
+  there's no real GPU scheduler or pricing table backing either one, so
+  they no longer report a fabricated `0` or a fake round-robin GPU index.
+- `Platform(backend=...)` only implements `"local"` — `"aws"`/`"gcp"`/
+  `"azure"` raise `NotImplementedError` immediately instead of being
+  silently accepted and behaving identically to `"local"` with zero
+  actual cloud provisioning behind them.
 
 **2. A compiled Rust extension** (`pystreamai._core`, built from `src/*.rs`
 via PyO3/maturin) exposing `Platform`, `GPUInfo`, `CUDAProfiler`, and
@@ -80,9 +99,12 @@ via PyO3/maturin) exposing `Platform`, `GPUInfo`, `CUDAProfiler`, and
 prototype** - the Python `pystreamai.platform.Platform` does not call into
 it, and vice versa. Its GPU/TensorRT-speedup numbers (e.g. "FP16 is 1.5x
 faster") are hardcoded domain-knowledge constants, not measurements taken
-on your hardware.
+on your hardware. Not touched in this pass.
 
 **What is real and does real work:**
+- `pystreamai.platform.Platform`/`Endpoint`, `pystreamai.decorators`,
+  `pystreamai.serving`, `pystreamai.api` — see above; real training/
+  inference against whatever model you provide.
 - `pystreamai.onnx_runtime.ONNXModelLoader` - a genuine wrapper around
   `onnxruntime.InferenceSession`; it loads and runs real `.onnx` models
   (see `tests/test_onnx_runtime.py`, which builds and runs an actual ONNX
@@ -96,6 +118,17 @@ on your hardware.
 - `pystreamai.model_registry` - real integration code for MLflow /
   Hugging Face Hub, active only if those optional libraries are installed
   (degrades to a documented no-op otherwise).
+
+**Explicitly not real, and clearly labeled as such in code (not silently
+faked):** `pystreamai.gpu` (`GPUOptimizer`, `InferenceOptimizationPlan`,
+`MultiGPUInference`) is a generic advisory calculator — every speedup/
+batch-size/VRAM number it produces is a hardcoded industry rule-of-thumb
+constant, not something measured against your actual model or hardware.
+The one real function in that module is `detect_available_gpus()`, which
+genuinely queries `torch.cuda` if PyTorch+CUDA are available. There's no
+GPU hardware in this project's development/CI environment to build real
+per-model GPU benchmarking against, so this remains advisory rather than
+measured — flagged here rather than presented as a benchmark.
 
 If you want to see exactly which claims a given module can back up, read
 its module docstring and the corresponding test file - every test file
@@ -178,8 +211,27 @@ HTTP server (`pip install "pystreamai[serving]"` first - see Security above):
 ```python
 from pystreamai.api import create_api_server
 
-server = create_api_server(model_id="demo-model", port=8000)
+def my_model(data):
+    return {"prediction": data}  # replace with your real model call
+
+server = create_api_server(model_id="demo-model", model=my_model, port=8000)
 server.run()  # POST /predict, GET /health, GET /stats - no auth
+```
+
+Real training and serving via `Platform` (`pystreamai.platform`):
+
+```python
+from pystreamai.platform import Platform
+
+platform = Platform()  # only backend="local" is implemented
+
+# code is called for real: code(dataset) -> your trained model
+job = platform.train(code=lambda dataset: {"weights": "trained on " + dataset}, dataset="data.csv")
+model = job.wait()  # the real object your callable returned
+
+# model needs a callable .predict() or to be callable itself (or a real .onnx file)
+endpoint = platform.serve(model=lambda data: {"echo": data})
+result = endpoint.predict({"x": 1})  # real call, real measured latency_ms
 ```
 
 ## What's restored, what isn't
@@ -235,20 +287,32 @@ covering the non-PyO3-exposed logic in `scheduler.rs`, `storage.rs`,
   `backend="aws"` and storing it with zero effect on behavior (the
   previous behavior — confirmed by grep, `self.backend` was never read
   anywhere after being set).
-- `Endpoint.predict()` now runs genuine inference through onnxruntime when
-  `Platform.serve()` was given a real `.onnx` file (or a preloaded
-  `pystreamai.onnx_runtime.ONNXModelLoader`) — see "How this works today"
-  above. Training (`Platform.train()`) is still not real for any model
-  type; only the serving/inference path was wired up.
+- `pystreamai.gpu` (`GPUOptimizer`/`InferenceOptimizationPlan`/
+  `MultiGPUInference`) remains a generic advisory calculator, not real
+  per-model/per-hardware benchmarking — see "How this works today" above.
+  There's no GPU hardware in this project's environment to build and
+  verify real GPU benchmarking against.
+- `pystreamai._core` (the compiled Rust extension) is a separate,
+  disconnected prototype — untouched by the training/serving fixes in
+  this pass. Its GPU/TensorRT numbers are the same kind of hardcoded
+  constant as `pystreamai.gpu`, independently.
 - No open GitHub issues as of this pass (2026-08-17).
-- Published PyPI version (`1.1.0`) matches `pyproject.toml` and
-  `Cargo.toml` - no version drift.
+- **Breaking changes in this pass** (not yet reflected in a version bump —
+  see below): `TrainingJob.wait()` now returns the real trained
+  model/artifact instead of always a `Path`; `Platform.serve()`/
+  `Endpoint(...)` now raise `TypeError` for a model with no real way to
+  run inference instead of returning it as `simulated: True`;
+  `InferenceServer.predict()`/`pystreamai.api`'s `/predict` now raise/500
+  if you haven't called `load_model()` first; `create_api_server()`/
+  `APIServer.__init__()` gained a required `model` parameter. Anything
+  calling this package's train/serve/predict path will need updating.
 - Fixed in this pass: trademarked cloud-vendor names removed from `docs/`,
   the GitHub repository's "About" description (previously claimed
   "40-50x faster... zero vendor lock-in" with no benchmark backing it),
   and every code example in this README verified against the actual
   source (`pystreamai/deployment.py`, `cost_tracking.py`,
-  `request_scheduler.py`, `onnx_runtime.py`, `api.py`).
+  `request_scheduler.py`, `onnx_runtime.py`, `api.py`, `platform.py`,
+  `serving.py`).
 
 ## Development
 
@@ -256,7 +320,7 @@ covering the non-PyO3-exposed logic in `scheduler.rs`, `storage.rs`,
 python3 -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev,serving,onnx]"
 maturin develop --release   # builds the Rust extension into the venv
-pytest                      # 149 tests
+pytest                      # 146 tests (1 needs the compiled Rust extension, `maturin develop` first)
 ruff check .
 cargo test --release        # 16 Rust unit tests
 ```

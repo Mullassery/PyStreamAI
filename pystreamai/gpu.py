@@ -1,4 +1,14 @@
-"""NVIDIA GPU Optimization Integration"""
+"""NVIDIA GPU Optimization Advisory (generic heuristics, not measurements).
+
+Every speedup/batch-size/VRAM number in this module (get_expected_speedup,
+get_batch_size_recommendation, get_memory_recommendation_mb,
+InferenceOptimizationPlan.recommend/.apply, MultiGPUInference.total_vram_gb)
+is a hardcoded, generic industry rule-of-thumb constant -- not something
+measured against your actual model or hardware. Treat "Optimization Plan"
+output as generic advice to try, not a benchmark result. The one real
+function here is detect_available_gpus(), which genuinely queries
+torch.cuda for real GPU info if PyTorch + CUDA are available.
+"""
 
 from typing import Dict, Any
 from dataclasses import dataclass
@@ -134,7 +144,7 @@ class MultiGPUInference:
     def enable_nvlink(self) -> "MultiGPUInference":
         """Enable NVLink (if available on H100/A100)"""
         if self.gpu_type in ["H100", "A100"]:
-            logger.info("NVLink enabled: ~1.7TB/s GPU-to-GPU bandwidth")
+            logger.info("NVLink spec bandwidth for this GPU class: ~1.7TB/s (published spec, not measured on this machine)")
         else:
             logger.warning(f"NVLink not available on {self.gpu_type}")
         return self
@@ -202,7 +212,7 @@ class InferenceOptimizationPlan:
             result += f"   Speedup: {step['speedup']}x\n"
             result += f"   {step['description']}\n\n"
 
-        result += f"Total Expected Speedup: {plan['total_speedup']:.1f}x\n"
+        result += f"Total Expected Speedup (generic estimate, not measured): {plan['total_speedup']:.1f}x\n"
         result += f"Recommended Batch Size: {plan['batch_size_recommended']}\n"
 
         return result

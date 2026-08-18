@@ -1,5 +1,6 @@
 """PyStreamAI HTTP API Server (FastAPI)"""
 
+import asyncio
 import logging
 from typing import Dict, Any
 from fastapi import FastAPI, HTTPException, BackgroundTasks
@@ -45,9 +46,18 @@ class StatsResponse(BaseModel):
 
 
 class APIServer:
-    """HTTP API wrapper around InferenceServer"""
+    """HTTP API wrapper around InferenceServer.
 
-    def __init__(self, model_id: str, gpu_type: str = "A100", num_gpus: int = 1, port: int = 8000):
+    `model` is required and loaded into the InferenceServer immediately
+    (synchronously, via asyncio.run -- safe here since this constructor
+    runs before uvicorn starts an event loop). Previously this class
+    accepted only a model_id string with no way to provide an actual
+    model, so /predict always hit InferenceServer's old fabricated
+    response path; now that InferenceServer requires a real loaded model,
+    that gap had to be closed here too.
+    """
+
+    def __init__(self, model_id: str, model: Any, gpu_type: str = "A100", num_gpus: int = 1, port: int = 8000):
         self.model_id = model_id
         self.gpu_type = gpu_type
         self.num_gpus = num_gpus
@@ -60,8 +70,9 @@ class APIServer:
             version="0.1.0",
         )
 
-        # Initialize inference server
+        # Initialize inference server and load the real model.
         self.server = InferenceServer(gpu_type, num_gpus)
+        asyncio.run(self.server.load_model(model_id, model))
 
         # Setup routes
         self._setup_routes()
@@ -129,9 +140,16 @@ class APIServer:
 
 def create_api_server(
     model_id: str,
+    model: Any,
     gpu_type: str = "A100",
     num_gpus: int = 1,
     port: int = 8000,
 ) -> APIServer:
-    """Create and return API server"""
-    return APIServer(model_id, gpu_type, num_gpus, port)
+    """Create and return an API server serving real inference for `model`.
+
+    `model` must be a real .onnx path/ONNXModelLoader, have a callable
+    `.predict()`, or be callable itself -- see
+    pystreamai.platform.Endpoint's docstring. Raises TypeError
+    immediately (via InferenceServer.load_model) otherwise.
+    """
+    return APIServer(model_id, model, gpu_type, num_gpus, port)

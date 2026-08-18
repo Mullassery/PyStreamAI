@@ -18,9 +18,15 @@ from fastapi.testclient import TestClient
 from pystreamai.api import create_api_server
 
 
+def echo_model(data):
+    return {"echoed": data}
+
+
 @pytest.fixture
 def client():
-    server = create_api_server(model_id="demo-model", gpu_type="A100", num_gpus=1, port=8000)
+    server = create_api_server(
+        model_id="demo-model", model=echo_model, gpu_type="A100", num_gpus=1, port=8000
+    )
     return TestClient(server.app)
 
 

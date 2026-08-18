@@ -23,24 +23,18 @@ def train(
         def wrapper(*args, **kwargs) -> TrainingJob:
             platform = get_platform()
             model_id = train_kwargs.get("model_id", fn.__name__)
+            dataset = args[0] if args else kwargs.get("dataset")
 
-            # Execute the training function. NOTE: the returned model object
-            # is not persisted anywhere yet (platform.train() below is a
-            # simulation - see README) - only its side effects, if any,
-            # take place.
-            fn(*args, **kwargs)
-
-            # Submit to platform
+            # platform.train() calls fn(dataset) for real and returns a
+            # TrainingJob wrapping the real trained model (job.model) or a
+            # real failure (job.wait() raises) -- fn is called exactly once.
             job = platform.train(
-                code=fn.__module__,
-                dataset="inline",
+                code=fn,
+                dataset=dataset,
                 gpu=gpu,
                 time_limit=time_limit,
                 model_id=model_id,
             )
-
-            # Store model artifact
-            print(f"   Model trained: {model_id}")
 
             return job
 
@@ -108,9 +102,9 @@ def pipeline(
         @functools.wraps(fn)
         def wrapper(*args, **kwargs) -> Any:
             pipeline_name = name or fn.__name__
-            print(f"🔗 Running pipeline: {pipeline_name}")
+            print(f"Running pipeline: {pipeline_name}")
             result = fn(*args, **kwargs)
-            print(f"✅ Pipeline {pipeline_name} completed")
+            print(f"Pipeline {pipeline_name} completed")
             return result
 
         return wrapper

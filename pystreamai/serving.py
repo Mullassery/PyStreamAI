@@ -8,6 +8,8 @@ from dataclasses import dataclass, field
 from datetime import datetime
 import uuid
 
+from .platform import Endpoint
+
 logger = logging.getLogger(__name__)
 
 
@@ -54,18 +56,29 @@ class BatchQueue:
         self.max_wait_ms = max_wait_ms
         self.queue: List[InferenceRequest] = []
         self.first_request_time: Optional[float] = None
-        self.lock = asyncio.Lock()
+        # Created lazily on first async use (not here in __init__), so
+        # constructing a BatchQueue doesn't require a running event loop --
+        # asyncio.Lock() binds to "the current loop" at construction time
+        # in older asyncio versions, which breaks if this object is built
+        # outside any loop, or after a prior asyncio.run() call reset the
+        # process's event loop policy.
+        self._lock: Optional[asyncio.Lock] = None
+
+    def _get_lock(self) -> asyncio.Lock:
+        if self._lock is None:
+            self._lock = asyncio.Lock()
+        return self._lock
 
     async def add(self, request: InferenceRequest) -> None:
         """Add request to queue"""
-        async with self.lock:
+        async with self._get_lock():
             if not self.queue:
                 self.first_request_time = time.time()
             self.queue.append(request)
 
     async def should_flush(self) -> bool:
         """Check if batch should be flushed"""
-        async with self.lock:
+        async with self._get_lock():
             if not self.queue:
                 return False
 
@@ -83,7 +96,7 @@ class BatchQueue:
 
     async def flush(self) -> List[InferenceRequest]:
         """Get batch and clear queue"""
-        async with self.lock:
+        async with self._get_lock():
             batch = self.queue.copy()
             self.queue = []
             self.first_request_time = None
@@ -91,31 +104,50 @@ class BatchQueue:
 
     async def size(self) -> int:
         """Get current queue size"""
-        async with self.lock:
+        async with self._get_lock():
             return len(self.queue)
 
 
 class ModelCache:
-    """Cache loaded models"""
+    """Cache of real, servable models, keyed by model_id.
+
+    `set()` wraps `model` in a `pystreamai.platform.Endpoint`, which
+    validates it has a real way to run inference (ONNX file, `.predict()`
+    method, or is callable) and raises immediately if not -- see
+    `Endpoint`'s docstring. There's no other code path to get a model
+    into this cache, so anything you can `get()` back out is guaranteed
+    to be real and predictable.
+    """
 
     def __init__(self):
-        self.models: Dict[str, Any] = {}
-        self.lock = asyncio.Lock()
+        self.models: Dict[str, Endpoint] = {}
+        # See BatchQueue._get_lock for why this is lazy, not created here.
+        self._lock: Optional[asyncio.Lock] = None
 
-    async def get(self, model_id: str) -> Optional[Any]:
-        """Get model from cache"""
-        async with self.lock:
+    def _get_lock(self) -> asyncio.Lock:
+        if self._lock is None:
+            self._lock = asyncio.Lock()
+        return self._lock
+
+    async def get(self, model_id: str) -> Optional[Endpoint]:
+        """Get a model's Endpoint from cache, or None if not loaded."""
+        async with self._get_lock():
             return self.models.get(model_id)
 
     async def set(self, model_id: str, model: Any) -> None:
-        """Cache model"""
-        async with self.lock:
-            self.models[model_id] = model
+        """Load a real model into the cache.
+
+        Raises TypeError immediately (via Endpoint's constructor) if
+        `model` has no real way to run inference.
+        """
+        endpoint = Endpoint(model_id=model_id, replicas=1, model=model)
+        async with self._get_lock():
+            self.models[model_id] = endpoint
             logger.info(f"Cached model: {model_id}")
 
     async def has(self, model_id: str) -> bool:
         """Check if model is cached"""
-        async with self.lock:
+        async with self._get_lock():
             return model_id in self.models
 
 
@@ -128,67 +160,124 @@ class InferenceEngine:
         self.model_cache = ModelCache()
         self.batch_queue = BatchQueue()
         self.responses: Dict[str, InferenceResponse] = {}
+        # Populated by whichever concurrent infer() call actually performs
+        # a given flush -- see infer()'s docstring for why this exists.
+        self._results: Dict[str, tuple] = {}
 
     async def infer(self, request: InferenceRequest) -> InferenceResponse:
-        """Run inference on request"""
+        """Run real inference on request.
+
+        When multiple infer() calls run concurrently (e.g. via
+        asyncio.gather), they all add themselves to the same batch queue,
+        but only one of them will actually see should_flush() succeed and
+        call flush() -- the rest would flush an already-empty queue and
+        poll should_flush() forever if they only checked the queue.
+        Instead, whichever call performs the flush computes results for
+        the *whole* batch (which may include other callers' requests) and
+        publishes them to self._results; every call -- including ones
+        that didn't perform the flush -- waits on its own request_id
+        appearing there.
+
+        Raises RuntimeError if no model is loaded for request.model_id
+        (see InferenceServer.load_model) -- there is no fabricated
+        fallback response.
+        """
         start_time = time.time()
 
-        # Add to batch queue
         await self.batch_queue.add(request)
 
-        # Wait for batch to fill or timeout
-        while not await self.batch_queue.should_flush():
-            await asyncio.sleep(0.01)  # Check every 10ms
+        while request.request_id not in self._results:
+            if await self.batch_queue.should_flush():
+                batch = await self.batch_queue.flush()
+                if batch:
+                    batch_results = await self._run_batch_inference(batch)
+                    self._results.update(batch_results)
+            else:
+                await asyncio.sleep(0.01)  # Check every 10ms
 
-        # Flush batch
-        batch = await self.batch_queue.flush()
-
-        # Run inference (simulated - see _run_batch_inference below)
-        await self._run_batch_inference(batch)
+        output, error, batch_size = self._results.pop(request.request_id)
 
         total_latency_ms = (time.time() - start_time) * 1000
 
-        # Create response
-        response = InferenceResponse(
+        if error is not None:
+            raise RuntimeError(f"Inference failed for model {request.model_id!r}: {error}")
+
+        # gpu_id/cost_usd are not implemented: there's no real GPU
+        # scheduler or pricing table backing them (see README), so they
+        # report None/0.0 rather than a fabricated number.
+        return InferenceResponse(
             request_id=request.request_id,
             model_id=request.model_id,
-            output=f"prediction_{request.request_id}",
+            output=output,
             latency_ms=total_latency_ms,
-            batch_size=len(batch),
-            gpu_id=0,  # Would assign based on GPU scheduler
-            cost_usd=0.0001 * len(batch),  # Rough estimate
+            batch_size=batch_size,
+            gpu_id=None,
+            cost_usd=0.0,
         )
 
-        return response
+    async def _run_batch_inference(self, batch: List[InferenceRequest]) -> Dict[str, tuple]:
+        """Run real inference for every request in the batch.
 
-    async def _run_batch_inference(self, batch: List[InferenceRequest]) -> float:
-        """Execute batch inference"""
-        # Simulated inference time based on batch size
-        # Real implementation would use PyTorch/ONNX
+        Requests are grouped by model_id and each group is predicted
+        against its real cached Endpoint. Returns {request_id: (output,
+        error, batch_size)} -- error is None on success, or a message
+        string if no model was loaded for that request's model_id or
+        predict() raised. batch_size is len(batch) for every request in
+        it, real for all of them, not just whichever call performed the
+        flush.
+        """
+        results: Dict[str, tuple] = {}
         batch_size = len(batch)
-        base_latency_ms = 10.0  # Base latency per batch
-        per_sample_ms = 5.0  # Per-sample latency
 
-        simulated_latency_ms = base_latency_ms + (per_sample_ms * batch_size)
+        by_model: Dict[str, List[InferenceRequest]] = {}
+        for req in batch:
+            by_model.setdefault(req.model_id, []).append(req)
 
-        # Simulate with TensorRT speedup
-        simulated_latency_ms = simulated_latency_ms / 2.0  # Assume 2x from optimizations
+        for model_id, requests in by_model.items():
+            endpoint = await self.model_cache.get(model_id)
+            if endpoint is None:
+                error = (
+                    f"no model loaded for model_id={model_id!r} -- "
+                    "call InferenceServer.load_model(model_id, model) first"
+                )
+                for req in requests:
+                    results[req.request_id] = (None, error, batch_size)
+                continue
 
-        await asyncio.sleep(simulated_latency_ms / 1000.0)  # Sleep to simulate
+            for req in requests:
+                try:
+                    result = endpoint.predict(req.input_data)
+                    results[req.request_id] = (result["output"], None, batch_size)
+                except Exception as e:
+                    results[req.request_id] = (None, f"{type(e).__name__}: {e}", batch_size)
 
-        return simulated_latency_ms
+        return results
 
 
 class InferenceServer:
-    """Production inference server"""
+    """Inference server: real request batching/timing, and -- once you've
+    called `load_model()` -- real per-request inference against the
+    models you loaded. `gpu_type`/`num_gpus` are accepted but have no
+    effect; there is no GPU scheduling in this package."""
 
     def __init__(self, gpu_type: str = "A100", num_gpus: int = 1):
         self.engine = InferenceEngine(gpu_type, num_gpus)
         self.request_log: List[Dict[str, Any]] = []
         self.start_time = time.time()
 
+    async def load_model(self, model_id: str, model: Any) -> None:
+        """Load a real model so predict(model_id, ...) can serve it.
+
+        `model` must be a real .onnx path/ONNXModelLoader, have a
+        callable `.predict()`, or be callable itself -- see
+        `pystreamai.platform.Endpoint`'s docstring. Raises TypeError
+        immediately otherwise.
+        """
+        await self.engine.model_cache.set(model_id, model)
+
     async def predict(self, model_id: str, input_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Run inference"""
+        """Run real inference. Raises RuntimeError if load_model(model_id, ...)
+        wasn't called first."""
         request = InferenceRequest(
             request_id=str(uuid.uuid4()),
             model_id=model_id,
@@ -211,9 +300,23 @@ class InferenceServer:
         return response.to_dict()
 
     def get_stats(self) -> Dict[str, Any]:
-        """Get server statistics"""
+        """Get server statistics.
+
+        Always returns the same six fields (zeroed out before any
+        requests) -- a previous version returned a two-key dict in the
+        empty case, which didn't match pystreamai.api's StatsResponse
+        schema and made GET /stats a real 500 error before any request
+        had been made.
+        """
         if not self.request_log:
-            return {"requests": 0, "avg_latency_ms": 0}
+            return {
+                "requests": 0,
+                "avg_latency_ms": 0.0,
+                "min_latency_ms": 0.0,
+                "max_latency_ms": 0.0,
+                "total_cost_usd": 0.0,
+                "uptime_seconds": time.time() - self.start_time,
+            }
 
         latencies = [r["latency_ms"] for r in self.request_log]
         total_cost = sum(r["cost_usd"] for r in self.request_log)

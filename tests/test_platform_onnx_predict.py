@@ -3,9 +3,10 @@
 Platform.serve() / Endpoint.predict() used to always return a fabricated
 "prediction from {model_id}" string with a hardcoded latency_ms=42.5,
 regardless of what model was actually passed in. This verifies serve()
-with a real .onnx file runs genuine inference through onnxruntime instead
-of the simulated path, and that non-ONNX models still fall back to the
-(now explicitly labeled) simulated response.
+with a real .onnx file runs genuine inference through onnxruntime, and
+that a model with no real way to run inference is rejected immediately
+(TypeError) rather than accepted and faked at predict() time -- see
+test_platform.py for that non-ONNX case in detail.
 """
 
 import pytest
@@ -42,30 +43,16 @@ def test_serve_with_real_onnx_model_runs_real_inference(add_one_model_path):
 
     result = endpoint.predict({"input": np.array([[1.0, 2.0, 3.0, 4.0]], dtype=np.float32)})
 
-    assert result["simulated"] is False
     np.testing.assert_allclose(result["output"][0], [[2.0, 3.0, 4.0, 5.0]])
     # Real measured latency, not the old hardcoded 42.5
     assert result["latency_ms"] >= 0
     assert result["latency_ms"] != 42.5
 
 
-def test_serve_with_non_onnx_model_falls_back_to_labeled_simulated_response():
+def test_serve_with_a_bad_onnx_path_raises_the_real_load_error():
     platform = Platform()
-    endpoint = platform.serve(model=object(), replicas=1)
-
-    result = endpoint.predict({"anything": 1})
-
-    assert result["simulated"] is True
-    assert result["latency_ms"] == 42.5
-
-
-def test_serve_with_no_model_falls_back_to_labeled_simulated_response():
-    platform = Platform()
-    endpoint = platform.serve(model=None, replicas=1)
-
-    result = endpoint.predict({})
-
-    assert result["simulated"] is True
+    with pytest.raises(Exception):
+        platform.serve(model="does-not-exist.onnx", replicas=1)
 
 
 def test_endpoint_accepts_a_preloaded_onnx_model_loader(add_one_model_path):
@@ -76,5 +63,4 @@ def test_endpoint_accepts_a_preloaded_onnx_model_loader(add_one_model_path):
 
     result = endpoint.predict({"input": np.array([[0.0, 0.0, 0.0, 0.0]], dtype=np.float32)})
 
-    assert result["simulated"] is False
     np.testing.assert_allclose(result["output"][0], [[1.0, 1.0, 1.0, 1.0]])

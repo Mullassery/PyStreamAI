@@ -1,9 +1,10 @@
 """Tests for pystreamai.serving - async batching/inference engine.
 
-The inference itself is simulated (asyncio.sleep standing in for real model
-compute - see pystreamai/serving.py:_run_batch_inference and the README's
-"How this works today" note), so these tests check the batching, caching
-and stats bookkeeping rather than real inference correctness or latency.
+InferenceServer.predict() runs real inference against models loaded via
+load_model() (which validates and wraps them in a real
+pystreamai.platform.Endpoint) - there is no fabricated response path.
+gpu_id/cost_usd are not implemented (no real GPU scheduler or pricing
+table backs them) and always report None/0.0 rather than a fake number.
 """
 
 import asyncio
@@ -15,6 +16,10 @@ from pystreamai.serving import BatchQueue, InferenceRequest, ModelCache, Inferen
 
 def make_request(request_id="r1"):
     return InferenceRequest(request_id=request_id, model_id="m1", input_data={"x": 1})
+
+
+def echo_model(data):
+    return {"echoed": data}
 
 
 class TestBatchQueue:
@@ -52,8 +57,14 @@ class TestModelCache:
     @pytest.mark.asyncio
     async def test_set_then_get_returns_cached_model(self):
         cache = ModelCache()
-        await cache.set("m1", object())
+        await cache.set("m1", echo_model)
         assert await cache.has("m1") is True
+
+    @pytest.mark.asyncio
+    async def test_set_with_no_real_way_to_run_inference_raises(self):
+        cache = ModelCache()
+        with pytest.raises(TypeError):
+            await cache.set("m1", object())
 
     @pytest.mark.asyncio
     async def test_get_missing_model_returns_none(self):
@@ -63,11 +74,20 @@ class TestModelCache:
 
 class TestInferenceServer:
     @pytest.mark.asyncio
-    async def test_predict_returns_response_dict(self):
+    async def test_predict_without_load_model_raises(self):
         server = InferenceServer(gpu_type="A100", num_gpus=1)
+        with pytest.raises(RuntimeError, match="no model loaded"):
+            await server.predict("m1", {"x": 1})
+
+    @pytest.mark.asyncio
+    async def test_predict_returns_real_output_from_loaded_model(self):
+        server = InferenceServer(gpu_type="A100", num_gpus=1)
+        await server.load_model("m1", echo_model)
+
         result = await server.predict("m1", {"x": 1})
 
         assert result["model_id"] == "m1"
+        assert result["output"] == {"echoed": {"x": 1}}
         assert result["latency_ms"] > 0
         assert "request_id" in result
 
@@ -75,18 +95,29 @@ class TestInferenceServer:
     async def test_get_stats_before_any_requests(self):
         server = InferenceServer()
         stats = server.get_stats()
-        assert stats == {"requests": 0, "avg_latency_ms": 0}
+        # Same six-key shape as the post-request case (zeroed out) -- a
+        # previous version returned a partial two-key dict here, which
+        # didn't match pystreamai.api's StatsResponse schema.
+        assert stats["requests"] == 0
+        assert stats["avg_latency_ms"] == 0.0
+        assert stats["min_latency_ms"] == 0.0
+        assert stats["max_latency_ms"] == 0.0
+        assert stats["total_cost_usd"] == 0.0
+        assert stats["uptime_seconds"] >= 0
 
     @pytest.mark.asyncio
     async def test_get_stats_after_requests_aggregates_latency(self):
         server = InferenceServer()
+        await server.load_model("m1", echo_model)
         await server.predict("m1", {"x": 1})
         await server.predict("m1", {"x": 2})
 
         stats = server.get_stats()
         assert stats["requests"] == 2
         assert stats["avg_latency_ms"] > 0
-        assert stats["total_cost_usd"] > 0
+        # cost_usd is not implemented (no real pricing table) -- always 0.0,
+        # not a fabricated positive estimate.
+        assert stats["total_cost_usd"] == 0.0
 
     def test_health_check_reports_healthy(self):
         server = InferenceServer()
