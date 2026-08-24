@@ -242,6 +242,10 @@ benchmarks exist (see "Key Metrics to Track" below).*
 - Limited monitoring dashboard UI
 - No auto-scaling (manual replicas only)
 - No traffic splitting (canary only)
+- No end-to-end tests for model failure states (rate limits, malformed/invalid model output) — `tests/test_api.py` and `tests/test_platform.py` cover happy-path inference and one generic exception path, but nothing simulates rate-limit/malformed-output scenarios; relevant once LLM-specific serving (v0.3+) lands
+- No reusable mock-inference-server fixture — no `conftest.py` exists; each test file hand-writes its own inline echo model instead of a shared, importable mock server downstream users could reuse
+
+(Note: external critique also claimed missing Pydantic schema validation and hardcoded provider assumptions — both checked and found already addressed: `pystreamai/api.py` uses real `pydantic.BaseModel` request/response models enforced via FastAPI, and provider/backend dispatch in `pystreamai/platform.py` is duck-typed/config-driven with auto-detected ONNX execution providers, not hardcoded branches.)
 
 ### Planned for v0.3+
 - Kubernetes auto-scaling
