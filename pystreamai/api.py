@@ -91,7 +91,18 @@ class APIServer:
             """Run inference"""
             try:
                 response = await self.server.predict(self.model_id, request.data)
-                return PredictResponse(**response)
+                predict_response = PredictResponse(**response)
+                # FastAPI serializes the return value *after* this handler
+                # returns, outside this try/except -- a model whose output
+                # isn't JSON-serializable (a custom object with no
+                # pydantic-compatible representation, a raw file handle,
+                # etc.) would otherwise surface as an unhandled
+                # PydanticSerializationError / 500 with no clean `detail`,
+                # unlike every other inference failure here. Forcing the
+                # same serialization now makes that failure mode go through
+                # this handler's own error path instead.
+                predict_response.model_dump_json()
+                return predict_response
             except Exception as e:
                 logger.error(f"Inference error: {e}")
                 raise HTTPException(status_code=500, detail=str(e))

@@ -11,7 +11,7 @@ with maturin.
 
 ---
 
-## Status: early / v2.0.0, source-available
+## Status: early / v2.1.0, source-available
 
 This project's public repository briefly shipped compiled wheels with the
 source code deliberately excluded ("kept locally"). That was reversed in
