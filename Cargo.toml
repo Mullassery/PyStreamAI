@@ -3,7 +3,7 @@ name = "pystreamai"
 version = "2.1.0"
 edition = "2021"
 description = "Rust orchestrator for PyStreamAI - simple ML deployment platform"
-license = "Proprietary"
+license = "Apache-2.0"
 
 [lib]
 name = "_core"

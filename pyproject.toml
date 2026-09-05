@@ -8,7 +8,7 @@ version = "2.1.0"
 description = "ML deployment toolkit: canary/A-B deployment routing, cost tracking, request scheduling, hot model reload, and ONNX Runtime inference"
 readme = "README.md"
 requires-python = ">=3.10"
-license = {text = "Proprietary"}
+license = "Apache-2.0"
 authors = [
     {name = "Georgi Mammen Mullassery", email = "mullassery@gmail.com"}
 ]

@@ -351,5 +351,4 @@ open cleanup items, not as features you can rely on.
 
 ## License
 
-See [LICENSE](LICENSE) - proprietary, free to use with attribution to the
-original author.
+This project is licensed under the [Apache License 2.0](LICENSE).
