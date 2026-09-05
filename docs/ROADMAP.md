@@ -50,9 +50,22 @@
 - ✅ Request-level tracing
 
 #### Model Management
-- ✅ MLflow registry (versioning, experiment tracking)
-- ✅ Hugging Face Hub integration (download/upload)
-- ✅ Model artifact storage (local, S3, GCS)
+- ✅ MLflow registry (versioning, experiment tracking) - `pystreamai/model_registry.py`'s
+  `MLflowRegistry` delegates to real `mlflow.set_tracking_uri`/`create_experiment`/
+  `mlflow.pytorch.log_model`/`mlflow.onnx.log_model` calls, not stubs.
+- ⚠️ Hugging Face Hub integration - **download is real** (`HuggingFaceRegistry.download_model()`
+  calls `transformers.AutoModel.from_pretrained()` for real), **upload is not**:
+  `upload_model()` only checks that `huggingface_hub` is importable, then logs
+  `"did not actually upload anything - real upload logic is not implemented yet"`
+  and returns `True` regardless (see the `TODO` in `model_registry.py`, also flagged
+  in README's "Known issues").
+- ❌ Model artifact storage (local, S3, GCS) - **not implemented.** Checked
+  `pystreamai/deployment.py` and the rest of `pystreamai/`: there is no S3/GCS/boto3/
+  `google.cloud.storage` code anywhere in this package. `DeploymentVersion.uri` is
+  just a plain string field on a dataclass - `manager.deploy_model("sentiment", "v1",
+  uri="s3://models/v1")` stores that string for canary-routing bookkeeping; it never
+  reads or writes to S3, GCS, or any other backend. This item should not have been
+  marked complete.
 
 #### Cost Management
 - ✅ GPU pricing (H100, A100, L4, T4, V100, RTX4090)
