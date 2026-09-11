@@ -48,6 +48,19 @@ python3 -c "import pystreamai; print(pystreamai.__version__)"
 
 There is no CLI (`pystreamai --version` etc. does not exist yet).
 
+## Use cases
+
+- **Canary/A-B rollout of a new model version** with real routing logic,
+  not just config that's never read.
+- **Local ONNX Runtime inference serving** with hot model reload and cost
+  tracking.
+- **Not yet a good fit for:** cloud backends (`backend="local"` is the
+  only real one — anything else raises `NotImplementedError` rather than
+  silently no-op'ing), real GPU/TensorRT benchmarking (advisory
+  calculator only, no GPU hardware to verify against), or model-registry
+  uploads to Hugging Face (logs a warning and returns `True` without
+  actually uploading — see [Known issues](#known-issues)).
+
 ## How this works today
 
 PyStreamAI is two mostly-independent layers restored from an earlier,
