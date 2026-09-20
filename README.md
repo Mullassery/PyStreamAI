@@ -114,14 +114,32 @@ it, and vice versa. Its GPU/TensorRT-speedup numbers (e.g. "FP16 is 1.5x
 faster") are hardcoded domain-knowledge constants, not measurements taken
 on your hardware. Not touched in this pass.
 
+The Rust-exposed `Platform.train()`/`serve()`/`predict()`
+(`src/lib.rs:48-58`) are more than "advisory": they don't do anything.
+Each one just `format!()`s its arguments back into a string
+(`Ok(format!("Training model {} on dataset {}", model_id, dataset))` and
+similarly for `serve`/`predict`) and returns it — no training, serving, or
+inference of any kind happens. The `Scheduler`/`Executor`/`Storage`/
+`InferenceOptimizer` fields `Platform::new()` constructs are never read by
+any of these methods (confirmed by `cargo build`'s own dead-code lint:
+"fields `scheduler`, `executor`, `storage`, and `inference_optimizer` are
+never read", `src/lib.rs:21`). Separately, `src/streaming.rs` (263 lines:
+`InferenceProcessor`, `PostprocessingStage`, the `StreamConnector` trait,
+`MQTTConnector`, `KafkaConnector`) and `src/backend.rs`'s `Backend` trait/
+`LocalBackend`/`KubernetesBackend`/`BackendType` are declared but never
+constructed or exposed via `#[pymodule]` anywhere — dead code, not a
+partially-wired feature. `cargo build --release` currently emits 40
+dead-code warnings total across `src/*.rs` confirming this.
+
 **What is real and does real work:**
 - `pystreamai.platform.Platform`/`Endpoint`, `pystreamai.decorators`,
   `pystreamai.serving`, `pystreamai.api` — see above; real training/
   inference against whatever model you provide.
 - `pystreamai.onnx_runtime.ONNXModelLoader` - a genuine wrapper around
-  `onnxruntime.InferenceSession`; it loads and runs real `.onnx` models
-  (see `tests/test_onnx_runtime.py`, which builds and runs an actual ONNX
-  graph, not a mock).
+  `onnxruntime.InferenceSession`; it loads and runs real `.onnx` models.
+  The code itself is real, but its test coverage currently is not
+  verified in CI - see "Known issues" (`tests/test_onnx_runtime.py` /
+  `tests/test_platform_onnx_predict.py`) before relying on this claim.
 - `pystreamai.request_scheduler`, `pystreamai.deployment`,
   `pystreamai.cost_tracking`, `pystreamai.hot_reload`,
   `pystreamai.advanced_caching`, `pystreamai.dashboard` - real,
@@ -142,6 +160,43 @@ genuinely queries `torch.cuda` if PyTorch+CUDA are available. There's no
 GPU hardware in this project's development/CI environment to build real
 per-model GPU benchmarking against, so this remains advisory rather than
 measured — flagged here rather than presented as a benchmark.
+
+**Also not real, found during a later audit pass and not previously
+disclosed here:** `pystreamai.llm_optimization` and
+`pystreamai.edge_deployment` (not imported by `pystreamai/__init__.py`,
+but importable directly, and shown as working examples in
+`docs/API_REFERENCE.md`/`docs/OPTIMIZATION.md`). Concretely:
+- `llm_optimization.SpeculativeDecoder.generate()` never calls the
+  `main_model`/`draft_model` objects passed into it. `_draft_tokens()`
+  returns the literal string `"draft " * num_tokens` and `_verify_tokens()`
+  just echoes that string back unconditionally
+  (`pystreamai/llm_optimization.py:76-89`) — the "speculative decoding" and
+  its reported "acceptance rate" are fabricated regardless of input.
+  `LLMOptimizationEngine.generate()`'s cache-hit path literally returns
+  `prompt + "cached_response"` (`llm_optimization.py:265`).
+- `edge_deployment.ModelQuantizer.quantize_int8/int4/fp16()` never open
+  `model_path` — they return hardcoded dicts (`"original_size_mb": 100`,
+  fixed compression ratios) regardless of the real file
+  (`pystreamai/edge_deployment.py:108-142`).
+  `EdgeModelCompiler.compile_tflite/onnx_mobile/wasm/core_ml/tflite_gpu()`
+  don't invoke any real compiler/converter — each just string-formats an
+  output filename and returns it; no file is written
+  (`edge_deployment.py:151-186`).
+- `docs/OPTIMIZATION.md`'s "Edge Deployment" examples (e.g. "Model is now:
+  Quantized to INT8 (75% smaller), Compiled to Core ML, Optimized for A15
+  GPU") describe what `prepare_model()` claims, not what it does — no
+  quantization, compilation, or GPU-specific optimization actually
+  happens.
+- `tests/test_misc_modules.py`'s module docstring already flags this
+  ("several ... return fixed placeholder numbers"), and its tests only
+  check `EdgeDeviceSpec`/`ModelQuantizer`'s return shape and
+  `PromptCache`/`PagedAttention`'s real bookkeeping logic — nothing tests
+  `SpeculativeDecoder`, `EdgeModelCompiler`, or `EdgeDeploymentPipeline`
+  end-to-end, because there's no real behavior there to test.
+- Neither module is mentioned in this README's "What is real" list above
+  because neither one is real — this is the first place either module is
+  disclosed outside a test-file comment. Treat both as an interface sketch
+  for planned features, not working code.
 
 If you want to see exactly which claims a given module can back up, read
 its module docstring and the corresponding test file - every test file
@@ -284,6 +339,35 @@ covering the non-PyO3-exposed logic in `scheduler.rs`, `storage.rs`,
 
 ## Known issues
 
+- **`tests/test_onnx_runtime.py` and `tests/test_platform_onnx_predict.py`
+  never actually run in this repo's CI, and currently fail if you force
+  them to run.** They `pytest.importorskip("onnx", ...)` (the graph-
+  building package, distinct from `onnxruntime`) and skip cleanly if it's
+  missing. `pyproject.toml`'s `[onnx]` extra only installs `onnxruntime`
+  and `numpy` - not `onnx` - so `pip install -e ".[dev,serving,onnx]"`
+  (exactly what `.github/workflows/tests.yml` runs) never installs it,
+  and both files are silently skipped in every CI run (confirmed locally:
+  `pytest -rs` reports `SKIPPED ... onnx package not installed` for both).
+  Verified in this pass: installing `onnx` manually does not just enable
+  the tests, it makes them **fail** - the currently-installable `onnx`
+  package writes IR version 14 graphs, and `onnxruntime>=1.15.0` (the
+  version installed today, 1.30.0) only supports up to IR version 13,
+  so every test in both files errors with
+  `Unsupported model IR version: 14, max supported IR version: 13`. The
+  "real ONNX inference verified by a real (non-mock) test" claim
+  elsewhere in this README is accurate about what the test *does*, not
+  about whether it currently passes anywhere. Needs a compatible
+  `onnx`/`onnxruntime` version pin plus adding `onnx` to a test/dev extra
+  - not done in this pass, see `ROADMAP_HONEST.md`.
+- `pystreamai.llm_optimization` and `pystreamai.edge_deployment` are almost
+  entirely fabricated - not previously disclosed in this README. See "How
+  this works today" above for specifics (`SpeculativeDecoder` never calls
+  a real model; `ModelQuantizer`/`EdgeModelCompiler` never touch the file
+  they're given). Full breakdown and follow-up plan in
+  `ROADMAP_HONEST.md`.
+- The Rust extension's `Platform.train()`/`serve()`/`predict()` methods
+  are literal string formatters with no real behavior behind them - not
+  "advisory," just non-functional. See "Rust extension" above.
 - `pystreamai.model_registry.HuggingFaceRegistry.upload_model()` checks that
   `huggingface_hub` is importable and reachable but does not perform a real
   upload yet - it logs a warning and returns `True` regardless (see the
@@ -333,7 +417,13 @@ covering the non-PyO3-exposed logic in `scheduler.rs`, `storage.rs`,
 python3 -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev,serving,onnx]"
 maturin develop --release   # builds the Rust extension into the venv
-pytest                      # 146 tests (1 needs the compiled Rust extension, `maturin develop` first)
+pytest                      # 161 passed, 2 skipped as of this pass (the 2 skips are
+                            # tests/test_onnx_runtime.py + tests/test_platform_onnx_predict.py -
+                            # see "Known issues", they don't just skip, they currently fail if
+                            # forced to run due to an onnx/onnxruntime IR-version mismatch).
+                            # Rust-extension tests (tests/test_core_extension.py) run as part of
+                            # the count above once `maturin develop` has built pystreamai/_core*.so;
+                            # they skip cleanly (not counted as a failure) if it hasn't been built.
 ruff check .
 cargo test --release        # 16 Rust unit tests
 ```
@@ -346,8 +436,11 @@ cargo test --release        # 16 Rust unit tests
 - [Optimization](docs/OPTIMIZATION.md)
 - [Serving](docs/SERVING.md)
 - [Integrations](docs/INTEGRATIONS.md)
-- [Roadmap](docs/ROADMAP.md)
+- [Roadmap](docs/ROADMAP.md) / [Honest roadmap + technical debt](ROADMAP_HONEST.md)
 - [Publishing](docs/PUBLISH.md)
+- [Contributing](CONTRIBUTING.md)
+- [Security policy](SECURITY.md)
+- [Changelog](CHANGELOG.md)
 
 Several of the above predate this restoration and describe a larger
 planned API surface (e.g. `Platform.load()`, `pip install pystreamai[gpu]`)

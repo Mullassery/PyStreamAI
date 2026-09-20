@@ -1,0 +1,46 @@
+name: Bug report
+description: Report a real, reproducible problem in PyStreamAI
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before filing: check the README's "How this works today" and "Known
+        issues" sections - several things that look like bugs (no cloud
+        backend, no auth, `pystreamai.gpu` being advisory-only, HF upload
+        being a no-op) are already-known, documented limitations rather
+        than new bugs.
+  - type: input
+    id: version
+    attributes:
+      label: PyStreamAI version
+      description: Output of `python3 -c "import pystreamai; print(pystreamai.__version__)"`
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Python version, and whether you used a prebuilt wheel or built from source
+      placeholder: "e.g. macOS 15, Python 3.11, pip install pystreamai"
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: Minimal code that reproduces the issue
+      render: python
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected vs. actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Full error / traceback
+      render: shell

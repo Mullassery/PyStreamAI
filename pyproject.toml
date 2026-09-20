@@ -63,6 +63,10 @@ dev = [
 [tool.maturin]
 features = ["pyo3/extension-module"]
 module-name = "pystreamai._core"
+# Without this, `maturin sdist` omits LICENSE from the sdist tarball and
+# PyPI rejects the upload (400) when the sdist is checked against the
+# declared license. Recurring bug across this org's maturin-based repos.
+include = ["LICENSE"]
 
 [tool.ruff]
 target-version = "py310"

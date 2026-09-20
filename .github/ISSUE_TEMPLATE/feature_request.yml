@@ -1,0 +1,29 @@
+name: Feature request
+description: Propose a new feature or improvement
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Check `docs/ROADMAP.md` and the README's "Known issues" section
+        first - your idea may already be tracked (e.g. cloud backends,
+        real GPU benchmarking, Hugging Face upload, LLM optimizations,
+        edge deployment) as a known gap rather than something to propose
+        from scratch.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: What are you trying to do that PyStreamAI doesn't support today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered

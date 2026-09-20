@@ -34,7 +34,10 @@ env/
 
 # Rust
 target/
-Cargo.lock
+# Cargo.lock is intentionally committed (not ignored): this crate builds a
+# cdylib (a PyO3 extension shipped in wheels), not a library consumed by
+# other Cargo projects, so per Cargo's own guidance the lockfile should be
+# checked in for reproducible builds.
 
 # Compiled PyO3/maturin extension (built locally via `maturin develop`)
 pystreamai/_core*.so
