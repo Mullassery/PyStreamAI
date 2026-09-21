@@ -36,9 +36,21 @@ serving = [
     "fastapi>=0.104.0",
     "uvicorn[standard]>=0.24.0",
 ]
-# pystreamai.onnx_runtime imports onnxruntime/numpy unconditionally.
+# pystreamai.onnx_runtime imports onnxruntime/numpy unconditionally; `onnx`
+# is only needed by the test suite (tests/test_onnx_runtime.py,
+# tests/test_platform_onnx_predict.py) to build .onnx graphs to load.
+# Verified 2026-09-21: onnxruntime 1.30.0 (the version `>=1.15.0` resolves
+# to today) only loads models up to IR version 13 (confirmed directly:
+# a hand-built IR-14 graph is the first one it rejects). onnx's own
+# default IR version by release: 1.15.0-1.19.x -> 9-12, 1.20.0-1.22.0 ->
+# 13, 1.23.0 (current latest) -> 14. Pinning below 1.23.0 keeps the
+# `[onnx]` extra's own test suite actually passing; lifting this pin
+# needs either an onnxruntime bump past 1.30.0 (potential breaking API
+# changes - out of scope for this pin) or a future onnx release that
+# reverts to IR <=13.
 onnx = [
     "onnxruntime>=1.15.0",
+    "onnx>=1.15.0,<1.23.0",
     "numpy>=1.24.0",
 ]
 # pystreamai.observability can export to Prometheus if installed.
@@ -54,6 +66,12 @@ dev = [
     "pytest>=7.0",
     "pytest-asyncio>=0.21",
     "ruff>=0.1.0",
+    # tests/test_api.py and tests/test_model_failure_states.py both need
+    # `httpx` for fastapi.testclient.TestClient (`pytest.importorskip`
+    # guards them). Without it, those two whole files (15 tests) are
+    # silently skipped - found and fixed in this pass, same shape of bug
+    # as the ONNX extra gap (see the `onnx` extra above).
+    "httpx>=0.24.0",
 ]
 
 [project.urls]

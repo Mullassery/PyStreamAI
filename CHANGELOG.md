@@ -13,6 +13,27 @@ history here for `v0.1.0` through `v2.1.0`. For that history, see
 
 ## [Unreleased]
 
+### Fixed
+- `pyproject.toml`'s `[onnx]` extra was missing the `onnx` package itself,
+  so `tests/test_onnx_runtime.py` / `tests/test_platform_onnx_predict.py`
+  were silently skipped in CI. Added `onnx>=1.15.0,<1.23.0` to the
+  extra - pinned below 1.23.0 because onnx 1.23.0 is the first release
+  that writes IR version 14 graphs, which the currently-resolved
+  `onnxruntime` (1.30.0, satisfying `>=1.15.0`) rejects (max supported
+  IR version 13; verified directly, not just from the error message).
+  onnx 1.15.0-1.22.0 all write IR versions 9-13, which onnxruntime
+  1.30.0 loads correctly. All 8 previously-skipped ONNX tests now run
+  and pass for real.
+- `pyproject.toml`'s `dev` extra was missing `httpx`, so
+  `tests/test_api.py` and `tests/test_model_failure_states.py` (15
+  tests total) were also silently skipped in CI via
+  `pytest.importorskip("httpx", ...)` (needed by
+  `fastapi.testclient.TestClient`) - same shape of bug as the ONNX gap
+  above, found while investigating it. Added `httpx>=0.24.0` to `dev`.
+- Full suite is now 169 passed / 0 skipped (previously 146 passed / 4
+  skipped when `[dev,serving,onnx]` was installed without the two fixes
+  above), `ruff check .` clean, `cargo test --release` 16 passed.
+
 ### Added
 - `ROADMAP_HONEST.md` - honest, bucketed roadmap and technical debt list
   (dead Rust code, fake `llm_optimization`/`edge_deployment` modules, the

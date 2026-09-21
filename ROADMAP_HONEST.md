@@ -9,11 +9,13 @@ this works today" and "Known issues" sections are the source of truth for
 narrative detail - this file exists to make status scannable and to hold
 the technical-debt list.
 
-Verification method for every claim below: `pytest` (161 passed / 2
-skipped, run 2026-09-19 with Python 3.11.16, `pip install -e
-".[dev,serving,onnx]"`), `cargo test --release` (16 passed), `ruff check .`
-(clean), and direct code reading (file:line references given). Nothing
-below is asserted without one of those.
+Verification method for every claim below: `pytest` (169 passed / 0
+skipped, run 2026-09-21 with Python 3.11.16, `pip install -e
+".[dev,serving,onnx]"` - up from 161 passed/2 skipped on 2026-09-19 now
+that the ONNX and httpx test-dependency gaps below are fixed), `cargo
+test --release` (16 passed), `ruff check .` (clean), and direct code
+reading (file:line references given). Nothing below is asserted without
+one of those.
 
 ## 1. Shipped and verified (tested, does what it says)
 
@@ -43,17 +45,15 @@ below is asserted without one of those.
 - **`pystreamai.onnx_runtime`**: the wrapper code is real (genuine
   `onnxruntime.InferenceSession` usage). Its test suite
   (`tests/test_onnx_runtime.py`, `tests/test_platform_onnx_predict.py`)
-  is **silently skipped in CI** because `pyproject.toml`'s `[onnx]` extra
-  doesn't install the `onnx` package the tests need to build a graph
-  (`pytest.importorskip("onnx", ...)` at `tests/test_onnx_runtime.py:13`).
-  Verified in this pass: installing `onnx` manually doesn't just enable
-  the tests, it makes all 6 of them **fail** -
-  `onnxruntime.capi.onnxruntime_pybind11_state.Fail: ... Unsupported model
-  IR version: 14, max supported IR version: 13` - because the currently-
-  installable `onnx` writes IR version 14 graphs and the installed
-  `onnxruntime` (1.30.0, satisfying the `>=1.15.0` constraint) only
-  supports up to IR version 13. This has apparently been true for a while
-  without being caught, because CI never installs `onnx` at all.
+  was **silently skipped in CI** because `pyproject.toml`'s `[onnx]`
+  extra didn't install the `onnx` package the tests need to build a
+  graph. **Fixed 2026-09-21**: added `onnx>=1.15.0,<1.23.0` to the
+  `[onnx]` extra. The upper bound matters - onnx 1.23.0 (latest as of
+  this pass) is the first release whose default IR version (14) exceeds
+  what the currently-resolved `onnxruntime` (1.30.0, satisfying
+  `>=1.15.0`) supports (max IR version 13, confirmed by direct test with
+  a hand-built graph). onnx 1.15.0-1.22.0 all write IR versions 9-13,
+  which load fine. All 8 tests now run for real and pass.
 - **`pystreamai.model_registry.HuggingFaceRegistry.upload_model()`**:
   checks `huggingface_hub` is importable/reachable, then logs a warning
   and returns `True` regardless - no real upload (`model_registry.py:213`,
@@ -64,6 +64,12 @@ below is asserted without one of those.
 - **HTTP server has no authentication.** `pystreamai.api`/`pystreamai.serving`
   accept unauthenticated requests to `/predict`, `/stats`, `/shutdown`.
   Fine for local/trusted-network use; do not expose directly.
+- **`tests/test_api.py` and `tests/test_model_failure_states.py` (15
+  tests) were also silently skipped in CI** - found while investigating
+  the ONNX gap above, same shape of bug: `pytest.importorskip("httpx",
+  ...)` guards both files (needed by `fastapi.testclient.TestClient`)
+  and `httpx` wasn't in any extra. **Fixed 2026-09-21**: added
+  `httpx>=0.24.0` to `dev`. All 15 tests now run for real and pass.
 
 ## 3. Fake / placeholder code - needs real implementation or deletion
 
@@ -150,18 +156,15 @@ README.
 
 ## Technical debt (concrete, file:line, for a dedicated follow-up session)
 
-1. **ONNX test suite is broken, not just optional** -
-   `pyproject.toml`'s `[onnx]` extra (lines ~39-43) doesn't include the
-   `onnx` package; `tests/test_onnx_runtime.py:13` and
-   `tests/test_platform_onnx_predict.py:15` both need it and silently
-   skip without it. When installed, the currently-resolved `onnx` version
-   writes IR version 14 graphs that the currently-resolved `onnxruntime`
-   (>=1.15.0, resolves to 1.30.0) rejects (max IR version 13). Needs a
-   compatible version pin (e.g. an older `onnx` release, or an
-   `onnxruntime` version that supports IR v14) added to a test/dev extra,
-   then confirmation the 6 affected tests actually pass, then wiring that
-   extra into `.github/workflows/tests.yml` so this doesn't silently
-   regress again.
+1. ~~**ONNX test suite is broken, not just optional**~~ **Fixed
+   2026-09-21**: `pyproject.toml`'s `[onnx]` extra now pins
+   `onnx>=1.15.0,<1.23.0` (onnx 1.23.0+ writes IR version 14, which
+   onnxruntime 1.30.0 rejects - max supported IR version 13). All 8
+   ONNX tests run and pass; `.github/workflows/tests.yml` already
+   installs `[dev,serving,onnx]` so no workflow change was needed. Note
+   for a future session: if `onnxruntime` is ever bumped past 1.30.0
+   for other reasons, re-check whether the onnx upper bound can be
+   relaxed (a newer onnxruntime may support IR 14+).
 2. **`pystreamai/llm_optimization.py` and `pystreamai/edge_deployment.py`
    are fake** (see §3 for exact lines) - 628 lines of code with zero
    real behavior behind their public methods, and zero test coverage of
