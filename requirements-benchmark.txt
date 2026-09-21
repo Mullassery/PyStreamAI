@@ -1,5 +1,5 @@
 # PyStreamAI Benchmarking Requirements
-transformers>=4.30.0
+transformers>=5.17.0
 torch>=2.0.0
 torchvision>=0.15.0
 numpy>=1.24.0
