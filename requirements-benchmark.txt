@@ -6,7 +6,7 @@ numpy>=1.24.0
 pydantic>=2.0.0
 
 # Optional: For better quantization
-bitsandbytes>=0.41.0
+bitsandbytes>=0.50.2
 
 # Optional: GPU acceleration
 # CUDA toolkit and cuDNN (install separately per your OS)
