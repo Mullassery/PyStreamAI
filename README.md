@@ -1,5 +1,7 @@
 # PyStreamAI
 
+[![Grapify](https://img.shields.io/badge/Grapify-Code%20Scan-purple)](https://grapify.ai)
+
 An ML deployment toolkit: a Python package (canary/A-B deployment
 routing, cost tracking, request scheduling, hot model reload, ONNX
 Runtime inference) plus a small compiled Rust extension (PyO3), built
