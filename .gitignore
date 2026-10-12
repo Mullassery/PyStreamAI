@@ -52,3 +52,5 @@ tmp/
 
 # Real training artifacts written by Platform.train() when code is a script
 pystreamai_artifacts/
+
+graphify-out/
