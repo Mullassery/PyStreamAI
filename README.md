@@ -1,34 +1,108 @@
 # PyStreamAI
 
-[![Graphify](https://img.shields.io/badge/Graphify-knowledge%20graph-blue)](https://github.com/Graphify-Labs/graphify)
-
-An ML deployment toolkit: a Python package (canary/A-B deployment
-routing, cost tracking, request scheduling, hot model reload, ONNX
-Runtime inference) plus a small compiled Rust extension (PyO3), built
-with maturin.
-
+[![PyPI](https://img.shields.io/pypi/v/pystreamai)](https://pypi.org/project/pystreamai/)
 [![CI](https://github.com/Mullassery/PyStreamAI/actions/workflows/tests.yml/badge.svg)](https://github.com/Mullassery/PyStreamAI/actions/workflows/tests.yml)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue)](https://www.python.org)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](./LICENSE)
 
----
+An ML deployment toolkit: canary/A-B routing, cost tracking, request scheduling, hot model reload, and ONNX Runtime inference.
 
-## Status: early / v2.1.0, source-available
+## What it is
 
-This project's public repository briefly shipped compiled wheels with the
-source code deliberately excluded ("kept locally"). That was reversed in
-the 2026-08 restoration: the full Python and Rust source is back in this
-repo and under active cleanup. If you're evaluating this for anything
-beyond experimentation, read the **"How this works today"** and
-**"Security"** sections below before you rely on it.
+PyStreamAI is a Python package for the deployment side of machine learning: routing
+traffic between model versions (canary/A-B), tracking per-inference cost and budgets,
+scheduling batched requests, hot-reloading models, and serving inference through ONNX
+Runtime or any callable `predict()`/callable object you supply. It also ships a small
+compiled Rust extension (PyO3/maturin) that exposes `Platform`, `GPUInfo`,
+`CUDAProfiler`, and `MemoryPool` as Python classes. The pure-Python deployment layer
+does real training/inference against whatever model you actually pass it; the Rust
+extension is a separate, self-contained prototype (see "What it is not").
 
-## Install
+## Features / Highlights
+
+- **Canary / A-B deployment routing** — `pystreamai.deployment.DeploymentManager`
+  routes requests across deployed model versions by traffic percentage.
+- **Cost tracking & budgets** — `pystreamai.cost_tracking.CostTracker` records
+  per-inference metrics and enforces budget rules.
+- **Request scheduling** — `pystreamai.request_scheduler.RequestScheduler`, a
+  priority queue for scheduled inference requests.
+- **Hot model reload** — swap the model behind a running endpoint without restarting.
+- **ONNX Runtime inference** — `pystreamai.onnx_runtime.ONNXModelLoader` is a real
+  wrapper around `onnxruntime.InferenceSession`; it loads and runs real `.onnx` files
+  and auto-selects a CUDA/TensorRT/CPU provider.
+- **HTTP serving** — `pystreamai.api.create_api_server(...)` and
+  `pystreamai.serving.InferenceServer` expose `/predict`, `/health`, and `/stats`.
+- **Model registry integrations** — `pystreamai.model_registry` connects to MLflow and
+  the Hugging Face Hub when those optional libraries are installed.
+- **Real training/serving abstraction** — `pystreamai.platform.Platform.train()` runs
+  your training callable/script for real; `.serve()`/`.predict()` run real inference.
+
+## Who it's for / Use cases
+
+- You are rolling out a new model version and want **real canary/A-B routing**, not
+  config that is never read.
+- You want **local ONNX Runtime inference serving** with hot model reload and cost
+  tracking attached.
+- You need **deterministic bookkeeping/algorithms** (priority queues, budget math,
+  LRU-style caching) around your own model, independent of the model itself.
+- You are integrating MLflow / Hugging Face Hub into a small deployment loop.
+
+## What it is not
+
+This is an honest list of known limitations. Read it before relying on the project.
+
+- **Early-stage / source-available history.** The repository briefly shipped compiled
+  wheels with the source excluded; that was reversed, and the full Python and Rust
+  source is back and under active cleanup. This is not a production-hardened system.
+- **Cloud backends are not implemented.** `Platform(backend=...)` only implements
+  `"local"`; `"aws"`/`"gcp"`/`"azure"` raise `NotImplementedError` immediately.
+- **No authentication on the HTTP servers.** `pystreamai.api` / `pystreamai.serving`
+  have no auth of any kind — do not expose them to an untrusted network without a
+  reverse proxy/API gateway in front.
+- **No CLI.** `pystreamai --version` does not exist.
+- **The Rust extension's `Platform.train()`/`serve()`/`predict()` do nothing real.**
+  They `format!()` their arguments into a string and return it. The `pystreamai._core`
+  extension is a separate prototype, not wired into the Python layer, and its GPU/TensorRT
+  speedup numbers are hardcoded domain constants, not measurements.
+- **`pystreamai.gpu` is advisory only.** `GPUOptimizer` / `InferenceOptimizationPlan` /
+  `MultiGPUInference` return hardcoded industry rule-of-thumb constants; only
+  `detect_available_gpus()` does real work (queries `torch.cuda`).
+- **`pystreamai.llm_optimization` and `pystreamai.edge_deployment` are interface
+  sketches, not working code.** `SpeculativeDecoder` never calls the models passed to
+  it, `LLMOptimizationEngine`'s cache-hit path returns `prompt + "cached_response"`,
+  and `ModelQuantizer`/`EdgeModelCompiler` never touch the file they are given. Both
+  modules are importable directly but not exported from `pystreamai/__init__.py`.
+- **No verified benchmark results.** Earlier READMEs claimed "40-50x faster" / "5ms per
+  request"; those came from a script that printed a fixed string and from hardcoded
+  multipliers, and have been removed. `benchmarks/` contains real scripts you can run
+  yourself, but no verified results ship in this repo.
+- **Known issues** (see `ROADMAP_HONEST.md` for detail):
+  - `HuggingFaceRegistry.upload_model()` logs a warning and returns `True` without
+    actually uploading.
+  - `observability`'s OpenTelemetry backend registers an `inference_speedup` gauge with
+    no callback, so it never reports a value.
+  - `tests/test_onnx_runtime.py` and `tests/test_platform_onnx_predict.py` are skipped in
+    CI (`onnx` not installed) and currently fail if forced, due to an `onnx` /
+    `onnxruntime` IR-version mismatch.
+  - `docs/GETTING_STARTED.md`, `docs/API_REFERENCE.md`, and `docs/DEPLOYMENT.md` describe
+    a larger planned API surface than the code implements; this README is the source of
+    truth.
+
+## Project status
+
+**Early / alpha.** Current version **2.1.0** (`Development Status :: 3 - Alpha`). The
+Python deployment layer is real and under active cleanup; the Rust extension is a
+disconnected prototype. v2.0.0 introduced breaking changes to `TrainingJob.wait()`,
+`Platform.serve()`, `InferenceServer.predict()`, and `create_api_server()` — see the
+changelog and `ROADMAP_HONEST.md` before upgrading.
+
+## Installation
 
 ```bash
 pip install pystreamai
 ```
 
-Optional extras (installed separately - not pulled in by the base install):
+Optional extras (not pulled in by the base install):
 
 ```bash
 pip install "pystreamai[serving]"       # FastAPI + uvicorn HTTP server (pystreamai.api)
@@ -38,235 +112,51 @@ pip install "pystreamai[registry]"      # mlflow + huggingface_hub integrations
 ```
 
 `pystreamai.api` and `pystreamai.onnx_runtime` import their dependencies
-unconditionally - install the matching extra before importing those
-specific modules, or you'll get an `ImportError`. Everything else in the
-package only imports optional libraries inside `try/except ImportError`
-and degrades gracefully (logs a warning, no-ops) if they're missing.
+unconditionally — install the matching extra before importing those modules. Everything
+else imports optional libraries lazily and degrades to a warning/no-op if they are
+missing.
 
-Verify:
-```bash
-python3 -c "import pystreamai; print(pystreamai.__version__)"
-```
+Requires Python 3.10+. A Rust toolchain is only needed to build the extension from
+source (not to install a prebuilt wheel).
 
-There is no CLI (`pystreamai --version` etc. does not exist yet).
-
-## Use cases
-
-- **Canary/A-B rollout of a new model version** with real routing logic,
-  not just config that's never read.
-- **Local ONNX Runtime inference serving** with hot model reload and cost
-  tracking.
-- **Not yet a good fit for:** cloud backends (`backend="local"` is the
-  only real one — anything else raises `NotImplementedError` rather than
-  silently no-op'ing), real GPU/TensorRT benchmarking (advisory
-  calculator only, no GPU hardware to verify against), or model-registry
-  uploads to Hugging Face (logs a warning and returns `True` without
-  actually uploading — see [Known issues](#known-issues)).
-
-## How this works today
-
-PyStreamAI is two mostly-independent layers restored from an earlier,
-pre-1.0 development snapshot:
-
-**1. A pure-Python layer** (`pystreamai.platform`, `pystreamai.decorators`,
-`pystreamai.serving`, `pystreamai.api`, and most of the package). As of
-this pass, this layer runs **real training and real inference against
-whatever model you actually give it** — there is no simulated/fabricated
-response path left anywhere in it:
-
-- `Platform.train(code, dataset)` runs `code` for real: if `code` is a
-  callable, it's called as `code(dataset)` and its real return value is
-  the trained model (`job.wait()` returns it, or raises the real
-  exception if `code` raised). If `code` is a path to a real script, it's
-  run as `python <code> --dataset <dataset> --output <path>` in a real
-  subprocess, and `job.wait()` returns the real artifact path the script
-  wrote — or raises if it exited non-zero or didn't write one. Anything
-  else (a non-existent path, a non-callable) raises `TypeError`
-  immediately, not a fake successful job.
-- `Platform.serve(model)` / `Endpoint.predict()` run real inference: a
-  real `.onnx` file (or `pystreamai.onnx_runtime.ONNXModelLoader`) gets
-  real onnxruntime inference; an object with a callable `.predict()`
-  method or a plain callable gets called for real. Anything else raises
-  `TypeError` at `serve()` time — there is no "simulated" fallback
-  response and no `latency_ms=42.5` constant left in the code.
-- `pystreamai.serving.InferenceServer` batches and times requests for
-  real *and* runs real per-request inference once you call
-  `await server.load_model(model_id, model)` — `predict()` raises
-  `RuntimeError` if you haven't. `pystreamai.api.create_api_server(model_id, model, ...)`
-  requires the real model up front for the same reason. Fixed in this
-  pass: a real concurrency bug where multiple requests batched together
-  via `asyncio.gather` would deadlock (only whichever request happened to
-  perform the batch flush ever got a result; the rest polled an
-  already-empty queue forever) — every request in a shared batch now
-  correctly gets its own real result and the real batch size it was part
-  of.
-- `gpu_id`/`cost_usd` on inference responses are `None`/`0.0` always —
-  there's no real GPU scheduler or pricing table backing either one, so
-  they no longer report a fabricated `0` or a fake round-robin GPU index.
-- `Platform(backend=...)` only implements `"local"` — `"aws"`/`"gcp"`/
-  `"azure"` raise `NotImplementedError` immediately instead of being
-  silently accepted and behaving identically to `"local"` with zero
-  actual cloud provisioning behind them.
-
-**2. A compiled Rust extension** (`pystreamai._core`, built from `src/*.rs`
-via PyO3/maturin) exposing `Platform`, `GPUInfo`, `CUDAProfiler`, and
-`MemoryPool` as Python classes. This is a **separate, self-contained
-prototype** - the Python `pystreamai.platform.Platform` does not call into
-it, and vice versa. Its GPU/TensorRT-speedup numbers (e.g. "FP16 is 1.5x
-faster") are hardcoded domain-knowledge constants, not measurements taken
-on your hardware. Not touched in this pass.
-
-The Rust-exposed `Platform.train()`/`serve()`/`predict()`
-(`src/lib.rs:48-58`) are more than "advisory": they don't do anything.
-Each one just `format!()`s its arguments back into a string
-(`Ok(format!("Training model {} on dataset {}", model_id, dataset))` and
-similarly for `serve`/`predict`) and returns it — no training, serving, or
-inference of any kind happens. The `Scheduler`/`Executor`/`Storage`/
-`InferenceOptimizer` fields `Platform::new()` constructs are never read by
-any of these methods (confirmed by `cargo build`'s own dead-code lint:
-"fields `scheduler`, `executor`, `storage`, and `inference_optimizer` are
-never read", `src/lib.rs:21`). Separately, `src/streaming.rs` (263 lines:
-`InferenceProcessor`, `PostprocessingStage`, the `StreamConnector` trait,
-`MQTTConnector`, `KafkaConnector`) and `src/backend.rs`'s `Backend` trait/
-`LocalBackend`/`KubernetesBackend`/`BackendType` are declared but never
-constructed or exposed via `#[pymodule]` anywhere — dead code, not a
-partially-wired feature. `cargo build --release` currently emits 40
-dead-code warnings total across `src/*.rs` confirming this.
-
-**What is real and does real work:**
-- `pystreamai.platform.Platform`/`Endpoint`, `pystreamai.decorators`,
-  `pystreamai.serving`, `pystreamai.api` — see above; real training/
-  inference against whatever model you provide.
-- `pystreamai.onnx_runtime.ONNXModelLoader` - a genuine wrapper around
-  `onnxruntime.InferenceSession`; it loads and runs real `.onnx` models.
-  The code itself is real, but its test coverage currently is not
-  verified in CI - see "Known issues" (`tests/test_onnx_runtime.py` /
-  `tests/test_platform_onnx_predict.py`) before relying on this claim.
-- `pystreamai.request_scheduler`, `pystreamai.deployment`,
-  `pystreamai.cost_tracking`, `pystreamai.hot_reload`,
-  `pystreamai.advanced_caching`, `pystreamai.dashboard` - real,
-  deterministic bookkeeping/algorithms (priority queues, canary traffic
-  routing, budget tracking, LRU-ish caches, hit-rate math). These don't
-  require a real model to be useful, but they also don't call one.
-- `pystreamai.model_registry` - real integration code for MLflow /
-  Hugging Face Hub, active only if those optional libraries are installed
-  (degrades to a documented no-op otherwise).
-
-**Explicitly not real, and clearly labeled as such in code (not silently
-faked):** `pystreamai.gpu` (`GPUOptimizer`, `InferenceOptimizationPlan`,
-`MultiGPUInference`) is a generic advisory calculator — every speedup/
-batch-size/VRAM number it produces is a hardcoded industry rule-of-thumb
-constant, not something measured against your actual model or hardware.
-The one real function in that module is `detect_available_gpus()`, which
-genuinely queries `torch.cuda` if PyTorch+CUDA are available. There's no
-GPU hardware in this project's development/CI environment to build real
-per-model GPU benchmarking against, so this remains advisory rather than
-measured — flagged here rather than presented as a benchmark.
-
-**Also not real, found during a later audit pass and not previously
-disclosed here:** `pystreamai.llm_optimization` and
-`pystreamai.edge_deployment` (not imported by `pystreamai/__init__.py`,
-but importable directly, and shown as working examples in
-`docs/API_REFERENCE.md`/`docs/OPTIMIZATION.md`). Concretely:
-- `llm_optimization.SpeculativeDecoder.generate()` never calls the
-  `main_model`/`draft_model` objects passed into it. `_draft_tokens()`
-  returns the literal string `"draft " * num_tokens` and `_verify_tokens()`
-  just echoes that string back unconditionally
-  (`pystreamai/llm_optimization.py:76-89`) — the "speculative decoding" and
-  its reported "acceptance rate" are fabricated regardless of input.
-  `LLMOptimizationEngine.generate()`'s cache-hit path literally returns
-  `prompt + "cached_response"` (`llm_optimization.py:265`).
-- `edge_deployment.ModelQuantizer.quantize_int8/int4/fp16()` never open
-  `model_path` — they return hardcoded dicts (`"original_size_mb": 100`,
-  fixed compression ratios) regardless of the real file
-  (`pystreamai/edge_deployment.py:108-142`).
-  `EdgeModelCompiler.compile_tflite/onnx_mobile/wasm/core_ml/tflite_gpu()`
-  don't invoke any real compiler/converter — each just string-formats an
-  output filename and returns it; no file is written
-  (`edge_deployment.py:151-186`).
-- `docs/OPTIMIZATION.md`'s "Edge Deployment" examples (e.g. "Model is now:
-  Quantized to INT8 (75% smaller), Compiled to Core ML, Optimized for A15
-  GPU") describe what `prepare_model()` claims, not what it does — no
-  quantization, compilation, or GPU-specific optimization actually
-  happens.
-- `tests/test_misc_modules.py`'s module docstring already flags this
-  ("several ... return fixed placeholder numbers"), and its tests only
-  check `EdgeDeviceSpec`/`ModelQuantizer`'s return shape and
-  `PromptCache`/`PagedAttention`'s real bookkeeping logic — nothing tests
-  `SpeculativeDecoder`, `EdgeModelCompiler`, or `EdgeDeploymentPipeline`
-  end-to-end, because there's no real behavior there to test.
-- Neither module is mentioned in this README's "What is real" list above
-  because neither one is real — this is the first place either module is
-  disclosed outside a test-file comment. Treat both as an interface sketch
-  for planned features, not working code.
-
-If you want to see exactly which claims a given module can back up, read
-its module docstring and the corresponding test file - every test file
-under `tests/` explains what it actually exercises.
-
-## Performance claims
-
-Earlier versions of this README claimed "40-50x faster inference" and
-"5ms per request." Digging into the restored source: those numbers came
-from a benchmark script (`benchmarks/bench_oss_comparison.py`) that
-printed a fixed `"~5ms (45x faster)"` string regardless of what it
-measured, and from hardcoded speedup multipliers used throughout the GPU
-optimization calculators (`1.5x` for FP16, `2.5x` for INT8, etc. - domain
-assumptions, not benchmark output). Those claims have been removed rather
-than carried forward unverified.
-
-`benchmarks/` contains real scripts that load real BERT/GPT-2 models via
-`transformers`/`torch` and time real inference
-(`pip install -r requirements-benchmark.txt` first) - if you run them and
-get real numbers, they'll be more trustworthy than anything stated here.
-This repository does not currently ship verified benchmark results.
-
-## Security
-
-**`pystreamai.api` / `pystreamai.serving` have no authentication.** Any
-process that can reach the HTTP server can call `/predict`, `/stats`, and
-`/shutdown`. This is fine for local development or an already-isolated
-network; do not expose it directly to an untrusted network without
-putting your own auth (reverse proxy, API gateway, etc.) in front of it.
-Built-in auth is not implemented yet.
-
-**Model loading**: `pystreamai.onnx_runtime` loads models via
-`onnxruntime.InferenceSession`, which parses ONNX's own format rather
-than Python `pickle` - it does not have pickle's arbitrary-code-execution
-properties. `pystreamai.model_registry.MLflowRegistry.load_model()`
-delegates to `mlflow.pytorch.load_model()`, which - like plain
-`torch.load()` - **can** execute arbitrary code if pointed at an
-untrusted model artifact; this only runs if you have `mlflow` installed
-and explicitly call it. Only load models (via any path) from sources you
-trust.
-
-## Real example (matches restored code, not aspirational API)
+## Quick start
 
 ```python
 from pystreamai.deployment import DeploymentManager
-from pystreamai.cost_tracking import CostTracker, CostMetric
-from pystreamai.request_scheduler import RequestScheduler, ScheduledRequest, RequestPriority
 
-# Canary-route traffic between two deployed model versions
 manager = DeploymentManager()
 manager.deploy_model("sentiment", "v1", uri="s3://models/v1")
 manager.deploy_model("sentiment", "v2", uri="s3://models/v2")
 manager.start_canary_deployment("v2", traffic_percent=10.0)
 routed = manager.route_request()  # -> DeploymentVersion for v1 or v2
+```
 
-# Track cost per inference
+## Usage
+
+**Track cost per inference:**
+
+```python
+from pystreamai.cost_tracking import CostTracker, CostMetric
+
 tracker = CostTracker()
 cost = tracker.record_inference(CostMetric(
     request_id="r1", model_id="sentiment", gpu_type="A100",
     latency_ms=42.0, batch_size=1, input_tokens=50, output_tokens=20,
 ))
-
-# Priority-queue requests
-scheduler = RequestScheduler()
-scheduler.enqueue(ScheduledRequest(priority=RequestPriority.HIGH.value, request_id="r1", model_id="sentiment"))
 ```
 
-Real ONNX inference (`pip install "pystreamai[onnx]"` first):
+**Priority-queue requests:**
+
+```python
+from pystreamai.request_scheduler import RequestScheduler, ScheduledRequest, RequestPriority
+
+scheduler = RequestScheduler()
+scheduler.enqueue(ScheduledRequest(
+    priority=RequestPriority.HIGH.value, request_id="r1", model_id="sentiment",
+))
+```
+
+**Real ONNX inference** (`pip install "pystreamai[onnx]"` first):
 
 ```python
 from pystreamai.onnx_runtime import ONNXModelLoader
@@ -276,7 +166,7 @@ model = ONNXModelLoader("model.onnx").load()  # auto-selects CUDA/TensorRT/CPU p
 outputs = model.infer({"input": np.zeros((1, 4), dtype=np.float32)})
 ```
 
-HTTP server (`pip install "pystreamai[serving]"` first - see Security above):
+**HTTP server** (`pip install "pystreamai[serving]"` first — no auth, see limitations):
 
 ```python
 from pystreamai.api import create_api_server
@@ -285,10 +175,10 @@ def my_model(data):
     return {"prediction": data}  # replace with your real model call
 
 server = create_api_server(model_id="demo-model", model=my_model, port=8000)
-server.run()  # POST /predict, GET /health, GET /stats - no auth
+server.run()  # POST /predict, GET /health, GET /stats
 ```
 
-Real training and serving via `Platform` (`pystreamai.platform`):
+**Real training and serving via `Platform`:**
 
 ```python
 from pystreamai.platform import Platform
@@ -299,135 +189,20 @@ platform = Platform()  # only backend="local" is implemented
 job = platform.train(code=lambda dataset: {"weights": "trained on " + dataset}, dataset="data.csv")
 model = job.wait()  # the real object your callable returned
 
-# model needs a callable .predict() or to be callable itself (or a real .onnx file)
+# model needs a callable .predict(), or to be callable, or to be a real .onnx file
 endpoint = platform.serve(model=lambda data: {"echo": data})
 result = endpoint.predict({"x": 1})  # real call, real measured latency_ms
 ```
 
-## What's restored, what isn't
-
-This repository's `pystreamai/` and `src/` were restored from git history
-(commit `0ce6efb`) after a later commit stripped them from the public
-repo. Everything under `pystreamai/*.py`, `src/*.rs`, `benchmarks/`, and
-`examples/serve_model.py` / `examples/start_http_server.py` is real,
-restored, and covered by `tests/`.
-
-One thing was **not** restored, because it never existed: a prior commit
-(`98f9c6d`, "Add Phases 5-10") added ~600 lines of documentation, an
-example, and a test file describing `rollback_strategies`,
-`cost_performance`, `framework_integration`, `advanced_analytics`,
-`multi_model_orchestration`, and `auto_versioning` modules - but shipped
-zero implementation for any of them (the commit touched only
-README/docs/tests). Those modules do not exist anywhere in this project's
-git history. `tests/test_phases_5_10.py`, `examples/auto_versioning_example.py`,
-and `docs/PHASES_5_10_GUIDE.md` (which tested/documented that
-non-existent code) have been removed rather than fabricated after the
-fact. If you need similar functionality today, the closest real
-equivalents are `pystreamai.deployment` (canary/A-B rollback routing) and
-`pystreamai.cost_tracking` (cost tracking/budgets) - see the example
-above.
-
-## Rust extension
-
-`src/*.rs` builds a PyO3 extension (`pystreamai._core`) via maturin,
-targeting PyO3 0.23 (upgraded from 0.21 during restoration; the module is
-built as a mixed Python/Rust layout - `python-source` = repo root,
-`module-name = "pystreamai._core"`). `cargo build`/`cargo test` need the
-`extension-module` PyO3 feature, which does not link against libpython -
-use `maturin build`/`maturin develop`/`cargo test` (not `cargo build`
-directly) to build a runnable extension. `cargo test` runs 16 unit tests
-covering the non-PyO3-exposed logic in `scheduler.rs`, `storage.rs`,
-`executor.rs`, and `gpu.rs`.
-
-## Known issues
-
-- **`tests/test_onnx_runtime.py` and `tests/test_platform_onnx_predict.py`
-  never actually run in this repo's CI, and currently fail if you force
-  them to run.** They `pytest.importorskip("onnx", ...)` (the graph-
-  building package, distinct from `onnxruntime`) and skip cleanly if it's
-  missing. `pyproject.toml`'s `[onnx]` extra only installs `onnxruntime`
-  and `numpy` - not `onnx` - so `pip install -e ".[dev,serving,onnx]"`
-  (exactly what `.github/workflows/tests.yml` runs) never installs it,
-  and both files are silently skipped in every CI run (confirmed locally:
-  `pytest -rs` reports `SKIPPED ... onnx package not installed` for both).
-  Verified in this pass: installing `onnx` manually does not just enable
-  the tests, it makes them **fail** - the currently-installable `onnx`
-  package writes IR version 14 graphs, and `onnxruntime>=1.15.0` (the
-  version installed today, 1.30.0) only supports up to IR version 13,
-  so every test in both files errors with
-  `Unsupported model IR version: 14, max supported IR version: 13`. The
-  "real ONNX inference verified by a real (non-mock) test" claim
-  elsewhere in this README is accurate about what the test *does*, not
-  about whether it currently passes anywhere. Needs a compatible
-  `onnx`/`onnxruntime` version pin plus adding `onnx` to a test/dev extra
-  - not done in this pass, see `ROADMAP_HONEST.md`.
-- `pystreamai.llm_optimization` and `pystreamai.edge_deployment` are almost
-  entirely fabricated - not previously disclosed in this README. See "How
-  this works today" above for specifics (`SpeculativeDecoder` never calls
-  a real model; `ModelQuantizer`/`EdgeModelCompiler` never touch the file
-  they're given). Full breakdown and follow-up plan in
-  `ROADMAP_HONEST.md`.
-- The Rust extension's `Platform.train()`/`serve()`/`predict()` methods
-  are literal string formatters with no real behavior behind them - not
-  "advisory," just non-functional. See "Rust extension" above.
-- `pystreamai.model_registry.HuggingFaceRegistry.upload_model()` checks that
-  `huggingface_hub` is importable and reachable but does not perform a real
-  upload yet - it logs a warning and returns `True` regardless (see the
-  `TODO` in `pystreamai/model_registry.py`).
-- `pystreamai.observability`'s OpenTelemetry backend creates an
-  `inference_speedup` observable gauge with no callback wired up, so it
-  never reports a value (see the `TODO` in `pystreamai/observability.py`).
-- `docs/GETTING_STARTED.md`, `docs/API_REFERENCE.md`, and
-  `docs/DEPLOYMENT.md` describe cloud backend config options that are not
-  implemented - only `backend="local"` is real. Those docs have been
-  reworded to say so explicitly and to drop vendor-specific naming.
-  `Platform(backend=...)` now raises `NotImplementedError` immediately for
-  anything other than `"local"`, instead of silently accepting e.g.
-  `backend="aws"` and storing it with zero effect on behavior (the
-  previous behavior — confirmed by grep, `self.backend` was never read
-  anywhere after being set).
-- `pystreamai.gpu` (`GPUOptimizer`/`InferenceOptimizationPlan`/
-  `MultiGPUInference`) remains a generic advisory calculator, not real
-  per-model/per-hardware benchmarking — see "How this works today" above.
-  There's no GPU hardware in this project's environment to build and
-  verify real GPU benchmarking against.
-- `pystreamai._core` (the compiled Rust extension) is a separate,
-  disconnected prototype — untouched by the training/serving fixes in
-  this pass. Its GPU/TensorRT numbers are the same kind of hardcoded
-  constant as `pystreamai.gpu`, independently.
-- No open GitHub issues as of this pass (2026-08-18).
-- **Breaking changes in v2.0.0** (bumped from 1.1.0 for exactly this reason):
-  `TrainingJob.wait()` now returns the real trained model/artifact instead
-  of always a `Path`; `Platform.serve()`/`Endpoint(...)` now raise
-  `TypeError` for a model with no real way to run inference instead of
-  returning it as `simulated: True`; `InferenceServer.predict()`/
-  `pystreamai.api`'s `/predict` now raise/500 if you haven't called
-  `load_model()` first; `create_api_server()`/`APIServer.__init__()`
-  gained a required `model` parameter. Anything calling this package's
-  train/serve/predict path will need updating.
-- Fixed in this pass: trademarked cloud-vendor names removed from `docs/`,
-  the GitHub repository's "About" description (previously claimed
-  "40-50x faster... zero vendor lock-in" with no benchmark backing it),
-  and every code example in this README verified against the actual
-  source (`pystreamai/deployment.py`, `cost_tracking.py`,
-  `request_scheduler.py`, `onnx_runtime.py`, `api.py`, `platform.py`,
-  `serving.py`).
-
-## Development
+**Development:**
 
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev,serving,onnx]"
 maturin develop --release   # builds the Rust extension into the venv
-pytest                      # 161 passed, 2 skipped as of this pass (the 2 skips are
-                            # tests/test_onnx_runtime.py + tests/test_platform_onnx_predict.py -
-                            # see "Known issues", they don't just skip, they currently fail if
-                            # forced to run due to an onnx/onnxruntime IR-version mismatch).
-                            # Rust-extension tests (tests/test_core_extension.py) run as part of
-                            # the count above once `maturin develop` has built pystreamai/_core*.so;
-                            # they skip cleanly (not counted as a failure) if it hasn't been built.
+pytest
 ruff check .
-cargo test --release        # 16 Rust unit tests
+cargo test --release
 ```
 
 ## Documentation
@@ -440,22 +215,22 @@ cargo test --release        # 16 Rust unit tests
 - [Integrations](docs/INTEGRATIONS.md)
 - [Roadmap](docs/ROADMAP.md) / [Honest roadmap + technical debt](ROADMAP_HONEST.md)
 - [Publishing](docs/PUBLISH.md)
-- [Contributing](CONTRIBUTING.md)
-- [Security policy](SECURITY.md)
 - [Changelog](CHANGELOG.md)
 
-Several of the above predate this restoration and describe a larger
-planned API surface (e.g. `Platform.load()`, `pip install pystreamai[gpu]`)
-that doesn't match the code in this repository yet - this README is the
-up-to-date source of truth; treat mismatches in the linked docs as
-open cleanup items, not as features you can rely on.
+## Contributing
 
-## System Requirements
+Contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) and
+[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) first, and report security issues per
+[SECURITY.md](SECURITY.md).
 
-- Python 3.10+
-- Rust toolchain (only if building the extension from source; not needed
-  to `pip install` a prebuilt wheel)
-- Linux or macOS (Windows via WSL2 - untested in this restoration pass)
+## Related projects
+
+- [PyStreamXL](https://github.com/Mullassery/PyStreamXL) — stream large Excel workbooks with constant memory
+- [PyStreamPDF](https://github.com/Mullassery/PyStreamPDF) — token-efficient PDF extraction for RAG
+- [PyStreamMCP](https://github.com/Mullassery/PyStreamMCP) — context and token optimization for AI agents
+- [PyStreamAI](https://github.com/Mullassery/PyStreamAI) — ML deployment toolkit (canary/A-B, cost tracking, ONNX)
+- [PyTokenCalc](https://github.com/Mullassery/PyTokenCalc) — LLM token counting and cost estimation
+- [Browse all projects](https://github.com/Mullassery?tab=repositories)
 
 ## License
 
