@@ -7,7 +7,7 @@ routing, cost tracking, request scheduling, hot model reload, ONNX
 Runtime inference) plus a small compiled Rust extension (PyO3), built
 with maturin.
 
-[![Tests](https://img.shields.io/github/actions/workflow/status/Mullassery/PyStreamAI/tests.yml?label=tests)](https://github.com/Mullassery/PyStreamAI/actions)
+[![CI](https://github.com/Mullassery/PyStreamAI/actions/workflows/tests.yml/badge.svg)](https://github.com/Mullassery/PyStreamAI/actions/workflows/tests.yml)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue)](https://www.python.org)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](./LICENSE)
 
