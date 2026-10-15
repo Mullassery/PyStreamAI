@@ -46,6 +46,19 @@ class OpenTelemetryBackend(MetricBackend):
 
             self.tracer = trace.get_tracer(__name__)
             self.meter = metrics.get_meter(__name__)
+            self._metrics_by_model: Dict[str, InferenceMetric] = {}
+
+            def _observe_speedup(options):
+                from opentelemetry.metrics import Observation
+                for model_id, m in getattr(self, "_metrics_by_model", {}).items():
+                    speedup = getattr(m, "speedup", 1.0)
+                    yield Observation(speedup, {"model": model_id})
+
+            self.meter.create_observable_gauge(
+                name="inference_speedup",
+                description="Speedup vs baseline",
+                callbacks=[_observe_speedup],
+            )
 
             logger.info("OpenTelemetry initialized (Jaeger + Prometheus)")
         except ImportError:
@@ -82,14 +95,10 @@ class OpenTelemetryBackend(MetricBackend):
                 "model": metric.model_id,
             })
 
-            # Record speedup gauge
-            # TODO: observable gauges need a callback to actually report
-            # values; creating one here without a callback registers it but
-            # never feeds it data, so it's not wired up yet.
-            self.meter.create_observable_gauge(
-                name="inference_speedup",
-                description="Speedup vs baseline",
-            )
+            # Record speedup state for observable gauge
+            if not hasattr(self, "_metrics_by_model"):
+                self._metrics_by_model = {}
+            self._metrics_by_model[metric.model_id] = metric
         except Exception as e:
             logger.error(f"Failed to record metric: {e}")
 
