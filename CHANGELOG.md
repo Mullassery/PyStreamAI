@@ -76,6 +76,11 @@ history here for `v0.1.0` through `v2.1.0`. For that history, see
   returns nothing). Kept unremoved, it implied config surface that
   doesn't exist.
 
+## [2.1.1] - 2026-10-17
+
+### Fixed
+- Audit remediation: security hardening, correctness fixes, and lint/CI gates.
+
 ## Earlier versions
 
 Version bumps prior to this file (`0.1.0` → `2.1.0`) happened via
