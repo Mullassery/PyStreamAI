@@ -1,6 +1,8 @@
 """OpenTelemetry Integration - Standard observability"""
 
 import logging
+from typing import Dict
+
 from .monitoring import MetricBackend, InferenceMetric
 
 logger = logging.getLogger(__name__)

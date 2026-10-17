@@ -73,7 +73,7 @@ class SemanticCache:
     def set(self, query: str, result: Any) -> None:
         """Cache result for query"""
         embedding = self.embed(query)
-        key = hashlib.md5(query.encode()).hexdigest()
+        key = hashlib.sha256(query.encode()).hexdigest()
 
         size = len(json.dumps(result, default=str).encode())
 
@@ -116,7 +116,7 @@ class EmbeddingCache:
 
     def get_key(self, text: str) -> str:
         """Get cache key for text"""
-        return hashlib.md5(text.encode()).hexdigest()
+        return hashlib.sha256(text.encode()).hexdigest()
 
     def get(self, text: str) -> Optional[List[float]]:
         """Get cached embedding"""
@@ -162,7 +162,7 @@ class ResultCache:
     def get_key(self, model_id: str, input_data: Dict[str, Any], version: str = "v1") -> str:
         """Generate cache key"""
         key_str = f"{model_id}:{json.dumps(input_data, sort_keys=True)}:{version}"
-        return hashlib.md5(key_str.encode()).hexdigest()
+        return hashlib.sha256(key_str.encode()).hexdigest()
 
     def get(self, model_id: str, input_data: Dict[str, Any], version: str = "v1") -> Optional[Any]:
         """Get cached result"""

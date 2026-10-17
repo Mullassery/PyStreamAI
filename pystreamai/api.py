@@ -7,6 +7,7 @@ from fastapi import FastAPI, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 import uvicorn
 
+from . import __version__
 from .serving import InferenceServer
 
 logger = logging.getLogger(__name__)
@@ -67,7 +68,7 @@ class APIServer:
         self.app = FastAPI(
             title="PyStreamAI",
             description="Simple ML Inference Server",
-            version="0.1.0",
+            version=__version__,
         )
 
         # Initialize inference server and load the real model.
