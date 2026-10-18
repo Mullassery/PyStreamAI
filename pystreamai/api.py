@@ -138,16 +138,16 @@ class APIServer:
         logger.info("Shutting down server...")
         # Cleanup code here
 
-    def run(self):
-        """Start the API server"""
-        logger.info(f"Starting PyStreamAI API server on port {self.port}")
+    def run(self, host: str = "127.0.0.1"):
+        """Start the API server (defaults to loopback 127.0.0.1; pass host='0.0.0.0' explicitly to expose)."""
+        logger.info(f"Starting PyStreamAI API server on {host}:{self.port}")
         logger.info(f"Model: {self.model_id}")
         logger.info(f"GPU: {self.gpu_type} x{self.num_gpus}")
-        logger.info(f"Health check: http://localhost:{self.port}/health")
-        logger.info(f"Predict: POST http://localhost:{self.port}/predict")
-        logger.info(f"Stats: http://localhost:{self.port}/stats")
+        logger.info(f"Health check: http://{host}:{self.port}/health")
+        logger.info(f"Predict: POST http://{host}:{self.port}/predict")
+        logger.info(f"Stats: http://{host}:{self.port}/stats")
 
-        uvicorn.run(self.app, host="0.0.0.0", port=self.port, log_level="info")
+        uvicorn.run(self.app, host=host, port=self.port, log_level="info")
 
 
 def create_api_server(

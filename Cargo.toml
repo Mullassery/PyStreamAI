@@ -1,6 +1,6 @@
 [package]
 name = "pystreamai"
-version = "2.1.0"
+version = "2.1.2"
 edition = "2021"
 description = "Rust orchestrator for PyStreamAI - simple ML deployment platform"
 license = "Apache-2.0"

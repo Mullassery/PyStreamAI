@@ -29,7 +29,7 @@ def add_one_model_path(tmp_path):
 
     add_node = helper.make_node("Add", ["input", "one"], ["output"])
     graph = helper.make_graph([add_node], "add_one", [x], [y], initializer=[one])
-    model = helper.make_model(graph, producer_name="pystreamai-tests")
+    model = helper.make_model(graph, producer_name="pystreamai-tests", ir_version=9)
     model.opset_import[0].version = 14
 
     path = tmp_path / "add_one.onnx"

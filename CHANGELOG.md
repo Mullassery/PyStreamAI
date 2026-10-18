@@ -76,6 +76,14 @@ history here for `v0.1.0` through `v2.1.0`. For that history, see
   returns nothing). Kept unremoved, it implied config surface that
   doesn't exist.
 
+## [2.1.2] - 2026-10-18
+
+### Security
+- Default `APIServer.run()` bind address to loopback `127.0.0.1` instead of `0.0.0.0` (RECHECK-002).
+
+### Fixed
+- Set `ir_version=9` on ONNX test graphs so `onnxruntime` on Python 3.10 (max IR 11) loads graphs built with `onnx >= 1.21`.
+
 ## [2.1.1] - 2026-10-17
 
 ### Fixed
