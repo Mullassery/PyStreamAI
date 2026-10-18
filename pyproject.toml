@@ -31,6 +31,8 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# Embedded architecture/knowledge-graph engine behind tools/codeatlas.
+architecture = ["codeatlas-rs>=0.3.0"]
 # pystreamai.api / pystreamai.serving import fastapi/uvicorn unconditionally.
 serving = [
     "fastapi>=0.104.0",
