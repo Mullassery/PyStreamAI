@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "outputs": {
+    "md": [
+      "overview.md",
+      "tools.7.md"
+    ],
+    "html": [
+      "overview.html",
+      "tools.7.html"
+    ]
+  }
+}
