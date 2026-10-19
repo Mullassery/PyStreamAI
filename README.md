@@ -217,6 +217,11 @@ cargo test --release
 - [Publishing](docs/PUBLISH.md)
 - [Changelog](CHANGELOG.md)
 
+## Queue status
+
+Shipped, blocked/failed, and rejected work for this repository is documented in
+[`QUEUE_STATUS.md`](QUEUE_STATUS.md).
+
 ## Contributing
 
 Contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) and
