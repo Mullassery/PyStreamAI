@@ -217,6 +217,16 @@ cargo test --release
 - [Publishing](docs/PUBLISH.md)
 - [Changelog](CHANGELOG.md)
 
+## Known issues and deferred work
+
+**Blocked / failed:**
+- The project is an archive candidate; no production path.
+
+**Rejected / deferred:**
+- Multi-cloud backends and dashboards.
+
+Full shipped/blocked/rejected detail: [`QUEUE_STATUS.md`](QUEUE_STATUS.md).
+
 ## Queue status
 
 Shipped, blocked/failed, and rejected work for this repository is documented in
