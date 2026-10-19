@@ -131,6 +131,21 @@ manager.start_canary_deployment("v2", traffic_percent=10.0)
 routed = manager.route_request()  # -> DeploymentVersion for v1 or v2
 ```
 
+## BentoML packaging manifest
+
+Export a portable manifest and service template for handing a model to BentoML:
+
+```python
+from pystreamai.bentoml_manifest import build_manifest, write_manifest, service_template
+
+manifest = build_manifest("fraud-model", model_path="model.onnx",
+                          dependencies=["onnxruntime"])
+write_manifest(manifest, "bento.json")
+open("service.py", "w").write(service_template(manifest))
+```
+
+This is a handoff format, not a BentoML fork or a full model store.
+
 ## Usage
 
 **Track cost per inference:**

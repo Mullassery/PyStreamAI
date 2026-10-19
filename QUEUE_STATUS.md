@@ -3,7 +3,7 @@
 This file records what was shipped, what is blocked/failed, and what is rejected for this repository. It complements `AUDIT_FINDINGS.md`.
 
 ## Shipped
-- No code changes; audit/bundle docs added.
+- Portable BentoML model/API manifest generation and service template handoff.
 
 ## Blocked / failed
 - The project is an archive candidate; no production path.

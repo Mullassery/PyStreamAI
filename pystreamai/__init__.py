@@ -1,5 +1,6 @@
 """PyStreamAI - Simple ML Deployment Platform"""
 
+from .bentoml_manifest import build_manifest, service_template, write_manifest
 from .platform import Platform
 from .decorators import train, serve, pipeline
 from .monitoring import (
@@ -23,4 +24,7 @@ __all__ = [
     "get_metrics",
     "set_metric_backend",
     "log_metric",
+    "build_manifest",
+    "write_manifest",
+    "service_template",
 ]
