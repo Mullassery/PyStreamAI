@@ -283,7 +283,7 @@ dependencies = [
 
 [[package]]
 name = "pystreamai"
-version = "2.1.2"
+version = "2.1.3"
 dependencies = [
  "async-trait",
  "chrono",
