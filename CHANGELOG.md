@@ -76,6 +76,11 @@ history here for `v0.1.0` through `v2.1.0`. For that history, see
   returns nothing). Kept unremoved, it implied config surface that
   doesn't exist.
 
+## [2.1.3] - 2026-10-23
+
+### Added
+- Exported native GPU helper types from the public API.
+
 ## [2.1.2] - 2026-10-18
 
 ### Security
