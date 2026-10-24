@@ -203,20 +203,60 @@ class HuggingFaceRegistry:
             return None
 
     @staticmethod
-    def upload_model(model, model_id: str, repo_name: str) -> bool:
-        """Upload model to Hugging Face Hub"""
+    def upload_model(
+        model,
+        model_id: str,
+        repo_name: str,
+        token: Optional[str] = None,
+        private: bool = False,
+    ) -> bool:
+        """Upload a local model (path or object) to the Hugging Face Hub.
+
+        ``model`` may be a directory/file path or a model object exposing
+        ``save_pretrained(path)`` / ``save(path)``. ``model_id`` is the
+        human-readable label used in logs. Returns ``True`` only after the
+        upload completes; returns ``False`` on missing dependencies or errors.
+        """
         try:
             from huggingface_hub import HfApi
 
-            logger.info(f"Uploading model to Hugging Face: {model_id}")
-            HfApi()
-            # TODO: actual upload (e.g. HfApi.upload_folder/create_repo) is not
-            # implemented yet - this currently only verifies huggingface_hub
-            # is importable and reachable, it does not upload anything.
-            logger.warning(
-                f"upload_model({model_id}) did not actually upload anything - "
-                "real upload logic is not implemented yet"
-            )
+            import os
+            import tempfile
+
+            logger.info(f"Uploading model to Hugging Face: {model_id} -> {repo_name}")
+            api = HfApi(token=token)
+            api.create_repo(repo_id=repo_name, exist_ok=True, private=private)
+
+            if isinstance(model, (str, os.PathLike)):
+                path = os.fspath(model)
+                if not os.path.exists(path):
+                    raise FileNotFoundError(f"model path does not exist: {path}")
+                if os.path.isdir(path):
+                    api.upload_folder(
+                        folder_path=path, repo_id=repo_name, token=token
+                    )
+                else:
+                    api.upload_file(
+                        path_or_fileobj=path,
+                        path_in_repo=os.path.basename(path),
+                        repo_id=repo_name,
+                        token=token,
+                    )
+            else:
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    if hasattr(model, "save_pretrained"):
+                        model.save_pretrained(tmpdir)
+                    elif hasattr(model, "save"):
+                        model.save(os.path.join(tmpdir, "model"))
+                    else:
+                        raise TypeError(
+                            "model must be a path or expose save_pretrained()/save()"
+                        )
+                    api.upload_folder(
+                        folder_path=tmpdir, repo_id=repo_name, token=token
+                    )
+
+            logger.info(f"Model uploaded: {repo_name}")
             return True
         except ImportError:
             logger.error("huggingface_hub not installed")

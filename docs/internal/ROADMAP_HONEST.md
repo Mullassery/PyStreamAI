@@ -54,10 +54,13 @@ one of those.
   `>=1.15.0`) supports (max IR version 13, confirmed by direct test with
   a hand-built graph). onnx 1.15.0-1.22.0 all write IR versions 9-13,
   which load fine. All 8 tests now run for real and pass.
-- **`pystreamai.model_registry.HuggingFaceRegistry.upload_model()`**:
-  checks `huggingface_hub` is importable/reachable, then logs a warning
-  and returns `True` regardless - no real upload (`model_registry.py:213`,
-  `TODO` in source).
+- ~~`pystreamai.model_registry.HuggingFaceRegistry.upload_model()`~~ —
+  **Fixed 2026-10-25.** It now creates/uses the target repo and really
+  uploads a local directory/file, or saves a model object via
+  `save_pretrained()`/`save()` to a temp directory and uploads that. Returns
+  `False` for a missing path, missing `huggingface_hub`, or upload error.
+  New tests use a fake `huggingface_hub.HfApi` to assert the real
+  `create_repo`/`upload_folder`/`upload_file` calls.
 - **`pystreamai.observability.OpenTelemetryBackend`**: creates an
   `inference_speedup` observable gauge with no callback wired up - never
   reports a value (`observability.py:86`, `TODO` in source).
@@ -176,8 +179,9 @@ README.
    roughly a third of `src/*.rs` by line count doing nothing.
 4. **`pystreamai/observability.py:86`** - OpenTelemetry gauge callback
    not wired, never reports a value (`TODO` in source).
-5. **`pystreamai/model_registry.py:213`** - `HuggingFaceRegistry.upload_model()`
-   is a no-op that returns `True` (`TODO` in source).
+5. ~~**`pystreamai/model_registry.py:213`** - `HuggingFaceRegistry.upload_model()`
+   is a no-op that returns `True`~~ — fixed 2026-10-25 (real create_repo +
+   upload, with tests).
 6. **No test exercises `MLflowRegistry` against a real (or even
    in-process fake) MLflow server** - it's marked "real" based on code
    reading (genuine `mlflow.*` calls), not a passing integration test.
