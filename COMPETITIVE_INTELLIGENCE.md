@@ -56,6 +56,8 @@ starts, and record the decision in the PR or changelog.
 
 ## OSS gap analysis — 2026-10-24
 
+**What matters most here:** autoscaling and auth. One process with no HPA/operator story and no authentication keeps it out of production; add Kubernetes-native deployment and a token/gateway layer before more routing features.
+
 Scope: `pystreamai` as a local Python model-serving library — HTTP inference, batching, canary/A-B routing, hot reload, cost tracking, scheduling — compared against OSS model-serving platforms. Repo state: v2.1.3, Alpha, 169 tests passing (2026-09-21). "Ours" claims are checked against `README.md`, `ROADMAP_HONEST.md`, `pystreamai/serving.py`, `deployment.py`, `hot_reload.py`.
 
 ### Comparable OSS projects
