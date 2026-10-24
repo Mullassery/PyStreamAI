@@ -53,3 +53,70 @@ starts, and record the decision in the PR or changelog.
 - Copying features for parity.
 - Adding a dependency just because a competitor uses it.
 - Treating star counts or download counts as proof of user need.
+
+## OSS gap analysis — 2026-10-24
+
+Scope: `pystreamai` as a local Python model-serving library — HTTP inference, batching, canary/A-B routing, hot reload, cost tracking, scheduling — compared against OSS model-serving platforms. Repo state: v2.1.3, Alpha, 169 tests passing (2026-09-21). "Ours" claims are checked against `README.md`, `ROADMAP_HONEST.md`, `pystreamai/serving.py`, `deployment.py`, `hot_reload.py`.
+
+### Comparable OSS projects
+
+| Project | GitHub | License | Last activity | Why it is the comparison |
+| --- | --- | --- | --- | --- |
+| BentoML | https://github.com/bentoml/BentoML | Apache-2.0 | v1.4.40, 2026-10-23 | Closest Python-first serving library: packaging, adaptive batching, runners |
+| Ray Serve | https://github.com/ray-project/ray | Apache-2.0 | active 2026 | Composable Python serving with traffic splitting, autoscaling, model composition |
+| KServe | https://github.com/kserve/kserve | Apache-2.0 | v0.21.0, 2026-09-25 | Kubernetes-native standard for canary, autoscaling, inference graphs |
+| Seldon Core | https://github.com/SeldonIO/seldon-core | Business Source License 1.1 (not OSI; converts to Apache-2.0) | v1.19.0, 2026-01-23 | Canary, A/B, inference graphs on Kubernetes; license is a differentiator for us |
+
+### Capability comparison
+
+| Capability | Ours | BentoML | Ray Serve | KServe | Seldon Core | Gap |
+| --- | --- | --- | --- | --- | --- | --- |
+| HTTP predict/health endpoints | Yes | Yes | Yes | Yes | Yes | No |
+| Weighted canary traffic split | Yes | Partial | Yes | Yes | Yes | No |
+| Per-user A/B routing | Yes | Partial | Partial | Partial | Partial | No |
+| Dynamic batching | Yes | Yes | Yes | Yes | Yes | No |
+| Hot model reload / version activation | Yes | Yes | Yes | Yes | Yes | No |
+| Autoscaling and replica management | No | Partial | Yes | Yes | Yes | Yes |
+| Multi-model pipelines / inference graphs | No | Yes | Yes | Yes | Yes | Yes |
+| Reproducible model packaging | No | Yes | Partial | Yes | Yes | Yes |
+| Authn/authz | No | Partial | Yes | Yes | Yes | Yes |
+| Kubernetes-native CRDs / operator | No | Partial | Yes | Yes | Yes | Yes |
+| Per-request cost accounting | Partial | Partial | Partial | Partial | Partial | Yes |
+| Priority request scheduling | Partial | Partial | Partial | Partial | Partial | Yes |
+| Observability (metrics, traces) | Partial | Yes | Yes | Yes | Yes | Yes |
+| Cloud deployment backends | No | Yes | Yes | Yes | Yes | Yes |
+| Production maturity | No | Yes | Yes | Yes | Yes | Yes |
+
+### Gaps that matter (ranked)
+
+1. **No autoscaling or Kubernetes-native deployment.** We have one process and no replica/HPA/operator story. Ray Serve, KServe, and Seldon Core all make scale-out the default; BentoML at least integrates with it. This is the gap that keeps us out of real deployments.
+2. **No authentication.** `README.md` states plainly that `pystreamai.api` / `pystreamai.serving` have no auth of any kind. Every comparable expects a gateway or token layer in front; ours requires the user to supply one before exposure.
+3. **No multi-model pipelines.** BentoML, Ray Serve, KServe inference graphs, and Seldon graphs compose models; we serve one model per server, so multi-stage inference is out of scope today.
+4. **Cost tracking and priority scheduling are unwired.** Both modules exist (`cost_tracking.py`, `request_scheduler.py`), but `serving.py:205-215` explicitly returns `gpu_id=None` and `cost_usd=0.0` because nothing backs them. The claimed differentiator is currently not on the request path.
+5. **No reproducible packaging.** BentoML builds a bento + image, KServe pulls OCI/S3 artifacts, Seldon ships prepackaged servers. Our MLflow/HuggingFace registry paths are partial and `HuggingFaceRegistry.upload_model()` returns `True` without uploading.
+6. **Placeholder surfaces undermine credibility.** The Rust `Platform.train()/serve()/predict()` only `format!()` strings, GPU/TensorRT speedups are hardcoded constants, and `llm_optimization`/`edge_deployment` are interface sketches. There is no CLI and no verified benchmark, while the comparables publish real numbers and release notes.
+
+### Where we are differentiated
+
+- Canary and per-user A/B routing (`deployment.py`) live in-process with no cluster, no CRD, no sidecar — the lightest possible version of what KServe/Seldon require a control plane for.
+- Real dynamic batching against cached ONNX endpoints (`serving.py`), not a simulated queue.
+- Hot reload with explicit version activation and graceful shutdown (`hot_reload.py`).
+- Apache-2.0 and pip-installable, versus Seldon Core's Business Source License and the K8s/operator footprint of KServe and Seldon.
+- Priority scheduling and per-request cost primitives are already written; if wired, they are a plausible niche (local, cost-aware serving) that BentoML/Ray do not center.
+- Documentation is unusually honest about what is not implemented, which is itself rare in this category.
+
+### Disposition
+
+- **Build:** auth middleware (token/API key) and wire `cost_tracking.py` + `request_scheduler.py` into the serving path; both are small and turn existing claims into facts.
+- **Build:** one multi-model pipeline primitive (sequential graph with typed hand-off), or explicitly document single-model as a constraint.
+- **Integrate/reuse:** adopt BentoML's bento format or the MLflow model registry for packaging instead of inventing a store; point users at KServe/Ray Serve for autoscaling rather than writing an operator.
+- **Defer/reject:** owning an autoscaler, a Kubernetes operator, or a model store — the platforms already won this and we cannot outspend them.
+- **Defer/reject:** cloud backends (`aws`/`gcp`/`azure`) until a user asks; reject GPU/TensorRT speedup claims until measured, and delete or gate the placeholder Rust/LLM/edge modules.
+
+### Sources
+
+- https://github.com/bentoml/BentoML/releases — v1.4.40, accessed 2026-10-24.
+- https://github.com/ray-project/ray/releases — active 2026, accessed 2026-10-24.
+- https://github.com/kserve/kserve/releases — v0.21.0, 2026-09-25, accessed 2026-10-24.
+- https://github.com/SeldonIO/seldon-core/releases and /blob/master/LICENSE — v1.19.0, 2026-01-23; BSL 1.1, accessed 2026-10-24.
+- Local evidence: `README.md` (limitations), `ROADMAP_HONEST.md`, `pystreamai/serving.py`, `pystreamai/deployment.py`, `pystreamai/hot_reload.py`.
