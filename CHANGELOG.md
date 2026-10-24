@@ -35,7 +35,7 @@ history here for `v0.1.0` through `v2.1.0`. For that history, see
   above), `ruff check .` clean, `cargo test --release` 16 passed.
 
 ### Added
-- `ROADMAP_HONEST.md` - honest, bucketed roadmap and technical debt list
+- `docs/internal/ROADMAP_HONEST.md` - honest, bucketed roadmap and technical debt list
   (dead Rust code, fake `llm_optimization`/`edge_deployment` modules, the
   ONNX test suite's actual CI/version-compatibility status, etc).
 - `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, this `CHANGELOG.md`.

@@ -7,7 +7,7 @@ and which are documented placeholders before you patch either.
 
 ## Before you start
 
-- Check `README.md`'s "Known issues" section and `ROADMAP_HONEST.md` -
+- Check `README.md`'s "Known issues" section and `docs/internal/ROADMAP_HONEST.md` -
   your bug or idea may already be tracked there with more detail than an
   issue would have.
 - For anything beyond a small fix, open an issue first to discuss the
@@ -45,7 +45,7 @@ and the PR description; don't leave it implied.
 
 This codebase has a documented history of shipping code that looked done
 but wasn't (see README's "Performance claims" and "Known issues"
-sections, and `ROADMAP_HONEST.md`'s technical debt list for current
+sections, and `docs/internal/ROADMAP_HONEST.md`'s technical debt list for current
 examples still being cleaned up). When contributing:
 
 - If a function can't do the real thing yet (no test hardware, no real
@@ -55,7 +55,7 @@ examples still being cleaned up). When contributing:
 - Don't add "TODO: implement later" methods that silently return success.
   Either implement it for real or leave it unimplemented and raise
   `NotImplementedError`.
-- If you're fixing one of the fake modules in `ROADMAP_HONEST.md` (e.g.
+- If you're fixing one of the fake modules in `docs/internal/ROADMAP_HONEST.md` (e.g.
   `pystreamai.llm_optimization`, `pystreamai.edge_deployment`), remove the
   "not real" disclosure for that specific function in the same PR that
   makes it real - don't let docs and code drift apart again.

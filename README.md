@@ -76,7 +76,7 @@ This is an honest list of known limitations. Read it before relying on the proje
   request"; those came from a script that printed a fixed string and from hardcoded
   multipliers, and have been removed. `benchmarks/` contains real scripts you can run
   yourself, but no verified results ship in this repo.
-- **Known issues** (see `ROADMAP_HONEST.md` for detail):
+- **Known issues** (see `docs/internal/ROADMAP_HONEST.md` for detail):
   - `HuggingFaceRegistry.upload_model()` logs a warning and returns `True` without
     actually uploading.
   - `observability`'s OpenTelemetry backend registers an `inference_speedup` gauge with
@@ -94,7 +94,7 @@ This is an honest list of known limitations. Read it before relying on the proje
 Python deployment layer is real and under active cleanup; the Rust extension is a
 disconnected prototype. v2.0.0 introduced breaking changes to `TrainingJob.wait()`,
 `Platform.serve()`, `InferenceServer.predict()`, and `create_api_server()` — see the
-changelog and `ROADMAP_HONEST.md` before upgrading.
+changelog and `docs/internal/ROADMAP_HONEST.md` before upgrading.
 
 ## Installation
 
@@ -228,7 +228,7 @@ cargo test --release
 - [Optimization](docs/OPTIMIZATION.md)
 - [Serving](docs/SERVING.md)
 - [Integrations](docs/INTEGRATIONS.md)
-- [Roadmap](docs/ROADMAP.md) / [Honest roadmap + technical debt](ROADMAP_HONEST.md)
+- [Roadmap](docs/ROADMAP.md) / [Honest roadmap + technical debt](docs/internal/ROADMAP_HONEST.md)
 - [Publishing](docs/PUBLISH.md)
 - [Changelog](CHANGELOG.md)
 
@@ -240,7 +240,7 @@ cargo test --release
 **Rejected / deferred:**
 - Multi-cloud backends and dashboards.
 
-Full shipped/blocked/rejected detail: [`QUEUE_STATUS.md`](QUEUE_STATUS.md).
+Full shipped/blocked/rejected detail: [`docs/internal/QUEUE_STATUS.md`](docs/internal/QUEUE_STATUS.md).
 
 ## Contributing
 
