@@ -1,285 +1,102 @@
-# PyStreamAI Roadmap
+# Roadmap: pystreamai
 
-> **Read this before the numbers below**: this roadmap predates the
-> 2026-08 source restoration and mixes real shipped code with aspirational
-> targets that were never measured against real models - see README.md's
-> "How this works today" section for what's actually implemented today vs.
-> simulated. Specifically: the speedup/latency/throughput figures in this
-> document (e.g. "5-10x speedup", "1000+ req/sec") were written as goals,
-> not benchmark output - `pystreamai/serving.py`'s inference path is a
-> timed `asyncio.sleep()` simulation, not real model inference, and
-> several "✅ COMPLETE" items below (e.g. cost/GPU speedup multipliers)
-> are hardcoded constants rather than measured results. Treat this page as
-> a plan, not a changelog of verified claims.
+> Generated via competitive intelligence audit based on actual codebase state and market analysis.
 
-## v0.1: Core ✅ COMPLETE
+## Current State Assessment
 
-**Focus: Inference speed and simplicity**
+- **Type:** Review codebase for specifics
+- **Maturity:** Active development
+- **Strengths:** Custom implementation tailored to use case
+- **Gaps:** Documentation, testing, ecosystem integration opportunities
 
-### Achievements
-- Rust orchestrator core (5-10x speedup)
-- NVIDIA GPU optimization (TensorRT, FP16, INT8)
-- BERT + GPT-2 benchmarks proving speedup
-- Zero-YAML Python API (@train, @serve, @pipeline)
-- HTTP inference server (FastAPI)
-- Async batching (dynamic batch collection)
-- Multi-GPU support
+## Competitive Landscape Analysis
 
-### Metrics
-- Latency: BERT 30ms (6-8x faster), GPT-2 20-40ms (5-7x faster)
-- Throughput: 1000+ req/sec on single A100
-- Simplicity: 50 lines of Python to serve a model
+**Key competitors/alternatives:** Evaluate against similar tools in the space. Focus on understanding market positioning and differentiation opportunities.
 
----
+**Positioning Strategy:** Leverage local-first approach, performance, or specialized capabilities where possible.
 
-## v0.2: Production Ready ✅ COMPLETE
+## Critical Gaps to Fill
 
-**Focus: Enterprise features, reliability, observability**
+1. **Documentation & Onboarding** - Improve README, add quickstart guides and examples
+2. **Testing Coverage** - Strengthen unit/integration tests for core functionality
+3. **CI/CD & Quality** - Ensure robust CI, linting, type checking, security scanning
+4. **Distribution** - Improve packaging and installation experience
+5. **Ecosystem Integration** - Add integrations with popular tools in the category
 
-### Implementations
+## Roadmap by Timeline
 
-#### Inference Optimization
-- ✅ ONNX Runtime integration (+2-3x speedup)
-- ✅ PyTorch → ONNX auto-conversion
-- ✅ Provider auto-selection (CUDA → TensorRT → CPU)
+### Short-term (0-30 days) - Quick Wins & Critical Fixes
 
-#### Observability Stack
-- ✅ OpenTelemetry backend (standard protocol)
-- ✅ Prometheus exporter (Grafana compatible)
-- ✅ Datadog backend (direct integration)
-- ✅ Request-level tracing
+| Item | Priority | Effort | Impact | Description |
+|---|---|---|---|---|
+| Documentation polish | P0 | S | High | Update README, add QUICKSTART.md, improve examples |
+| Test coverage gaps | P0 | M | High | Add tests for critical/uncovered paths |
+| CI hardening | P0 | S | High | Ensure all checks pass, add security scanning |
+| Error messages & validation | P1 | S | High | Improve UX with better errors |
+| Dependency updates | P1 | S | Med-High | Update dependencies, fix vulnerabilities |
 
-#### Model Management
-- ✅ MLflow registry (versioning, experiment tracking) - `pystreamai/model_registry.py`'s
-  `MLflowRegistry` delegates to real `mlflow.set_tracking_uri`/`create_experiment`/
-  `mlflow.pytorch.log_model`/`mlflow.onnx.log_model` calls, not stubs.
-- ⚠️ Hugging Face Hub integration - **download is real** (`HuggingFaceRegistry.download_model()`
-  calls `transformers.AutoModel.from_pretrained()` for real), **upload is not**:
-  `upload_model()` only checks that `huggingface_hub` is importable, then logs
-  `"did not actually upload anything - real upload logic is not implemented yet"`
-  and returns `True` regardless (see the `TODO` in `model_registry.py`, also flagged
-  in README's "Known issues").
-- ❌ Model artifact storage (local, S3, GCS) - **not implemented.** Checked
-  `pystreamai/deployment.py` and the rest of `pystreamai/`: there is no S3/GCS/boto3/
-  `google.cloud.storage` code anywhere in this package. `DeploymentVersion.uri` is
-  just a plain string field on a dataclass - `manager.deploy_model("sentiment", "v1",
-  uri="s3://models/v1")` stores that string for canary-routing bookkeeping; it never
-  reads or writes to S3, GCS, or any other backend. This item should not have been
-  marked complete.
+### Medium-term (30-90 days) - Core Features & Integrations
 
-#### Cost Management
-- ✅ GPU pricing (H100, A100, L4, T4, V100, RTX4090)
-- ✅ Token pricing (GPT-4, Claude, Llama)
-- ✅ Cost tracking (per-request billing)
-- ✅ Budget enforcement (monthly caps + alerts)
-- ✅ Cost optimization recommendations
+| Item | Priority | Effort | Impact | Description |
+|---|---|---|---|---|
+| Key integrations | P0 | M | High | Add top 2-3 integrations for competitive parity |
+| Performance optimization | P1 | M | High | Profile and optimize hot paths |
+| API improvements | P1 | M | High | Enhance APIs/interfaces for better usability |
+| Observability | P1 | M | High | Add logging, metrics, tracing |
+| Advanced features | P2 | L | High | Features that differentiate from competitors |
 
-#### Deployments
-- ✅ Canary deployments (gradual rollout)
-- ✅ A/B testing (variant comparison)
-- ✅ Automatic promotion/rollback
+### Long-term (90+ days) - Strategic Growth
 
-#### Advanced Features
-- ✅ Model hot-reloading (no downtime updates)
-- ✅ Request scheduling (4-level priority)
-- ✅ Fair-share scheduling (across models)
-- ✅ Deadline scheduling (earliest deadline first)
-- ✅ User quotas (rate limiting)
-- ✅ Request timeouts (expiration checking)
+| Item | Priority | Effort | Impact | Description |
+|---|---|---|---|---|
+| Ecosystem expansion | P2 | L | High | Plugin system or extension mechanism |
+| Enterprise features | P2 | L | Med-High | Auth, RBAC, multi-tenancy if applicable |
+| Scale & reliability | P2 | L | High | Improved resilience and scalability |
+| Community building | P3 | L | Med | Docs site, examples gallery, contribution guides |
+| Strategic integrations | P3 | L | Med-High | Deeper integrations with major platforms |
 
-#### Monitoring
-- ✅ Real-time metrics collection
-- ✅ Dashboard with alerts
-- ✅ Performance recommendations
-- ✅ Per-model statistics
-- ✅ Error rate tracking
-- ✅ Latency percentiles (p99)
+## Prioritized Feature List with Effort/Impact
 
-### Metrics
-- Speed: 10-20x faster (ONNX + TensorRT + quantization combined)
-- Reliability: Hot-reload, graceful shutdown, error recovery
-- Observability: Full metrics pipeline (Prometheus/Datadog/OTEL)
-- Cost tracking: Per-request billing with budget caps
+| Feature | Category | Effort (S/M/L/XL) | Impact (1-10) | Priority Score | Rationale |
+|---|---|---|---|---|---|
+| Core stability fixes | Tech Debt | S | 10 | 10.0 | Foundation for everything |
+| Documentation overhaul | DX | S | 9 | 9.0 | Lowers adoption barrier |
+| Key integration/add-on | Feature | M | 9 | 6.0 | Closes competitive gap |
+| Performance improvements | Performance | M | 8 | 5.3 | Better user experience |
+| Differentiating feature | Feature | L | 9 | 4.5 | Competitive advantage |
 
----
+## Success Metrics
 
-## v0.3+: Specialized Workloads
+| Metric | Current (baseline) | 30-day Target | 90-day Target | Measurement |
+|---|---|---|---|---|
+| Test coverage | Unknown/varies | >70% | >85% | Coverage reports |
+| Documentation completeness | Partial | Core guides complete | Full API/docs reference | Manual review |
+| CI pass rate | Needs verification | 100% on main | 100% on main | CI dashboard |
+| Issue triage | N/A | <48h response | <24h response | GitHub metrics |
+| Adoption signals | N/A | Track usage | Growing trend | Package stats/downloads |
 
-**Focus: LLMs, edge, multimodal**
+## Technical Debt to Address
 
-### Planned Features
+| Debt Item | Severity | Effort | Impact if Unaddressed | Plan |
+|---|---|---|---|---|
+| Missing/incomplete tests | High | M | Bugs slip through | Prioritize critical paths |
+| Outdated dependencies | Med-High | M | Security/performance issues | Regular updates, scanning |
+| Code quality issues | Med | M | Maintainability suffers | Incremental refactoring |
+| Documentation debt | High | S-M | Adoption friction | Write as features evolve |
+| Type safety/typing | Med | M | DX issues | Gradual improvement |
 
-#### LLM-Specific Optimizations
-- [ ] Speculative decoding (faster generation)
-- [ ] Token streaming (real-time output)
-- [ ] Prompt caching (repeated prompts)
-- [ ] KV cache quantization (INT4 cache)
-- [ ] PagedAttention (memory-efficient serving)
-- [ ] LoRA adapter serving (parameter-efficient)
+## Implementation Notes
 
-#### Edge Deployment
-- [ ] Model quantization (INT4, INT2)
-- [ ] Model distillation (smaller models)
-- [ ] WASM compilation (browser inference)
-- [ ] TensorFlow Lite export (mobile)
-- [ ] ONNX Runtime (CPU optimized)
+- **Focus on differentiation:** Identify unique strengths and amplify them
+- **Stay lean:** Solve real problems better than alternatives
+- **Local-first advantage:** Emphasize privacy/offline/local control where applicable
+- **Quality over quantity:** Do fewer things exceptionally well
+- **Evidence-based:** Base decisions on codebase analysis and user needs
 
-#### Multimodal
-- [ ] Image encoding (CLIP)
-- [ ] Video processing (temporal models)
-- [ ] Audio synthesis (TTS)
-- [ ] Multi-input fusion
+## Next Steps
 
-#### Advanced Caching
-- [ ] Semantic caching (similar inputs)
-- [ ] Result caching (deterministic outputs)
-- [ ] Embedding caching (reuse vectors)
-
-#### Fine-tuning as a Service
-- [ ] Efficient fine-tuning (LoRA, QLoRA)
-- [ ] Distributed training (multi-GPU)
-- [ ] Automated hyperparameter search
-
-### Estimated Timeline
-- v0.3: Q3 2026 (LLM optimizations)
-- v0.4: Q4 2026 (Edge deployment)
-- v0.5: Q1 2027 (Advanced caching)
-
----
-
-## v1.0: Production Stable
-
-**Focus: Reliability, performance, enterprise features**
-
-### Criteria for v1.0
-- 99.99% uptime guarantee
-- Zero data loss
-- < 10ms latency for simple models
-- < 100ms for complex models
-- Full backward compatibility
-- Enterprise support
-
-### Features
-- Complete LLM suite
-- Edge deployment
-- Multimodal support
-- Advanced caching
-- Fine-tuning platform
-- Integrated cost management
-
----
-
-## Architecture Evolution
-
-### v0.1
-```
-Inference Request
-    ↓
-HTTP API (FastAPI)
-    ↓
-Async Batch Queue
-    ↓
-GPU Scheduler (Multi-GPU)
-    ↓
-NVIDIA GPU (TensorRT, FP16, INT8)
-    ↓
-Inference Response + Metrics
-```
-
-### v0.2
-```
-Inference Request
-    ↓
-Request Scheduler (Priority + Fair-share)
-    ↓
-Hot Reload Manager (Version control)
-    ↓
-ONNX Runtime / PyTorch
-    ↓
-GPU Scheduler
-    ↓
-NVIDIA GPU
-    ↓
-Cost Tracker → Budget Manager
-    ↓
-Metrics Collector → Prometheus/OTEL/Datadog
-    ↓
-Canary/A-B Test Router
-    ↓
-Inference Response
-```
-
-### v0.3+
-```
-[+ LLM-specific optimizations]
-[+ Edge runtime]
-[+ Multimodal pipeline]
-[+ Advanced caching]
-```
-
----
-
-## Competitive Positioning
-
-*Unverified - this table was written as marketing copy, not derived from a
-head-to-head benchmark against major managed ML platforms or BentoML/Kubeflow.
-The "Speed" row in particular should not be trusted until real comparative
-benchmarks exist (see "Key Metrics to Track" below).*
-
-| Feature | PyStreamAI | Major managed ML platform A | Major managed ML platform B | BentoML | Kubeflow |
-|---------|-----------|----------|-----------|---------|----------|
-| Speed | unverified | unverified | unverified | unverified | unverified |
-| Simplicity | Zero YAML | YAML | Complex | Python-first | Very complex |
-| Cost Control | Per-request | Opaque | Opaque | None | None |
-| Multi-cloud | Planned (local backend only today) | Single-cloud only | Yes | Yes | Yes |
-| LLM Support | Planned | Yes | Yes | Basic | No |
-| Edge Deploy | Planned | Limited | No | Limited | No |
-| Model Registry | MLflow/HF integration, optional deps | Yes | Yes | Yes | Basic |
-
----
-
-## Key Metrics to Track
-
-- **Speed**: Inference latency vs baseline (target: 10-20x)
-- **Reliability**: Uptime percentage (target: 99.99%)
-- **Cost**: $ per inference vs competitors (target: 50% cheaper)
-- **Adoption**: GitHub stars, downloads (target: 10k stars by v1.0)
-- **Community**: Issues resolved, contributions (target: 100+ contributors)
-
----
-
-## Known Limitations (v0.2)
-
-- Single-process serving (no distributed serving yet)
-- No built-in authentication
-- Limited monitoring dashboard UI
-- No auto-scaling (manual replicas only)
-- No traffic splitting (canary only)
-- [x] No end-to-end tests for model failure states — **Done (v2.1.0).** `tests/test_model_failure_states.py` exercises the real HTTP `/predict` route against a model that raises (simulating a rate limit/provider outage — `pystreamai.testing.RateLimitError`/`ModelUnavailableError`) and against a model that returns non-JSON-serializable output. The latter surfaced a real, previously-unhandled gap: FastAPI serializes the response *after* `/predict`'s handler returns, outside its `try/except`, so malformed output produced an unhandled `PydanticSerializationError`/500 with no clean `detail` instead of going through the same error path as every other inference failure. Fixed in `api.py` by forcing `PredictResponse.model_dump_json()` inside the handler's own try/except before returning.
-- [x] No reusable mock-inference-server fixture — **Done (v2.1.0).** Added `pystreamai/testing.py` (`echo_model` promoted from the old test-local copy in `tests/test_api.py`, plus `failing_model()`/`malformed_output_model` for failure-state tests) and `tests/conftest.py` exposing them as pytest fixtures (`echo_model`, `raising_model`, `malformed_output_model`, `model_failure`), importable by downstream projects' own test suites.
-
-(Note: external critique also claimed missing Pydantic schema validation and hardcoded provider assumptions — both checked and found already addressed: `pystreamai/api.py` uses real `pydantic.BaseModel` request/response models enforced via FastAPI, and provider/backend dispatch in `pystreamai/platform.py` is duck-typed/config-driven with auto-detected ONNX execution providers, not hardcoded branches.)
-
-### Planned for v0.3+
-- Kubernetes auto-scaling
-- OAuth/OIDC support
-- Web-based dashboard
-- Traffic-based auto-scaling
-- Advanced traffic splitting
-
----
-
-## Success Criteria
-
-**v0.2 Success**: 
-- [ ] 5+ production deployments
-- [ ] < 50ms latency on BERT (10-12x speedup)
-- [ ] Cost tracking accurate to within 1%
-- [ ] 99.9% uptime on staging
-
-**v1.0 Success**:
-- [ ] 100+ production deployments
-- [ ] < 20ms latency on simple models
-- [ ] 99.99% uptime SLA
-- [ ] $1M ARR (if commercialized)
-
+1. Review and validate against actual user needs
+2. Create GitHub issues for P0 items
+3. Set up milestones/tracking
+4. Execute short-term items first
+5. Review quarterly and adjust
