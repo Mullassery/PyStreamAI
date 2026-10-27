@@ -17,7 +17,7 @@ and which are documented placeholders before you patch either.
 ## Development setup
 
 ```bash
-git clone https://github.com/Mullassery/PyStreamAI.git
+git clone ../PyStreamAI
 cd PyStreamAI
 python3 -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev,serving,onnx]"
